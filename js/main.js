@@ -329,7 +329,9 @@
       label.innerHTML =
         '<input type="radio" name="to" value="' + i + '" id="' + id + '"' + (i === 0 ? " checked" : "") + ">" +
         "<span></span>";
-      label.querySelector("span").textContent = c.name;
+      var sp = label.querySelector("span");
+      sp.textContent = c.name;
+      if (c.role) { var sm = document.createElement("small"); sm.textContent = c.role; sp.appendChild(sm); }
       toWrap.appendChild(label);
     });
 
@@ -391,8 +393,8 @@
   /* ------------------------------------------------------------------ *
    * 6. Contact area (Call + WhatsApp chat for each of the couple)
    * ------------------------------------------------------------------ */
-  var ICON_CALL = '<svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path d="M6.6 3.5h3l1.4 4-2 1.3a11 11 0 0 0 5.2 5.2l1.3-2 4 1.4v3a2 2 0 0 1-2.2 2A15.5 15.5 0 0 1 4.6 5.7a2 2 0 0 1 2-2.2Z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>';
-  var ICON_WA = '<svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path d="M20 11.6A8 8 0 0 1 8.2 18.7L4 20l1.3-4A8 8 0 1 1 20 11.6Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M9.2 8.6c.3 2.9 2.500 5.200 5.600 5.700l1.100-1.300-1.900-1-.9.800c-1-.4-1.800-1.200-2.200-2.200l.8-.9-1-1.900-1.500.8Z" fill="currentColor"/></svg>';
+  var ICON_CALL = '<svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true"><path d="M6.6 3.5h3l1.4 4-2 1.3a11 11 0 0 0 5.2 5.2l1.3-2 4 1.4v3a2 2 0 0 1-2.2 2A15.5 15.5 0 0 1 4.6 5.7a2 2 0 0 1 2-2.2Z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>';
+  var ICON_WA = '<svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true"><path d="M20 11.6A8 8 0 0 1 8.2 18.7L4 20l1.3-4A8 8 0 1 1 20 11.6Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M9.2 8.6c.3 2.9 2.500 5.200 5.600 5.700l1.100-1.300-1.900-1-.9.800c-1-.4-1.800-1.200-2.200-2.200l.8-.9-1-1.900-1.500.8Z" fill="currentColor"/></svg>';
 
   function initContacts() {
     var grid = $("#contactGrid");
@@ -410,21 +412,25 @@
       role.className = "contact__role";
       role.textContent = c.role || "";
 
+      var actions = document.createElement("div");
+      actions.className = "contact__actions";
+
       var call = document.createElement("a");
-      call.className = "btn contact__btn";
+      call.className = "contact__link";
       call.href = "tel:+" + intl;
       call.setAttribute("aria-label", "Call " + c.name);
-      call.innerHTML = ICON_CALL + "<span>Normal Call</span>";
+      call.innerHTML = ICON_CALL + "<span>Call</span>";
 
       var wa = document.createElement("a");
-      wa.className = "btn contact__btn";
+      wa.className = "contact__link";
       wa.href = "https://wa.me/" + intl;
       wa.target = "_blank";
       wa.rel = "noopener noreferrer";
       wa.setAttribute("aria-label", "Send " + c.name + " a WhatsApp message");
-      wa.innerHTML = ICON_WA + "<span>WhatsApp Message</span>";
+      wa.innerHTML = ICON_WA + "<span>WhatsApp</span>";
 
-      card.append(name, role, call, wa);
+      actions.append(call, wa);
+      card.append(name, role, actions);
       grid.appendChild(card);
     });
   }

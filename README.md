@@ -35,7 +35,7 @@ The site never depends on the video length: it moves on when the video ends, so 
 Leave `video.src` as `""` to skip the video and use the elegant fallback.
 
 ## RSVP & contacts
-The form collects only the guest's name, attendance and an optional *A Little Message*; it opens a pre-filled WhatsApp chat with the chosen person (Tharindu / Dinushma). Below the form, each of them has a **Normal Call** (`tel:`) and **WhatsApp Message** (`wa.me`) button. Names, roles and numbers live in `js/config.js → rsvp.contacts`.
+The form (name → attendance → optional *A Little Message* → who to send to → button) collects only the guest's name, attendance and the optional message; it opens a pre-filled WhatsApp chat with the chosen person (Tharindu / Dinushma). Below the form, each of them has a compact **Call** (`tel:`) and **WhatsApp** (`wa.me`) link. Names, roles and numbers live in `js/config.js → rsvp.contacts`.
 
 ## Background video (looping)
 A silent, looping video sits behind the whole invitation at low opacity. It starts fading in as the opening video fades out.

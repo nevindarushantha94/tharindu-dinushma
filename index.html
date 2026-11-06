@@ -145,11 +145,6 @@
       <p class="deadline reveal" style="--d:.2s" data-cfg="rsvp.deadlineText"></p>
 
       <form id="rsvpForm" class="form reveal" style="--d:.3s" novalidate autocomplete="on">
-        <fieldset class="field">
-          <legend>Send your reply to</legend>
-          <div id="rsvpTo" class="choices"></div>
-        </fieldset>
-
         <div class="field">
           <label for="guestName">Your name</label>
           <input id="guestName" name="name" type="text" maxlength="60" autocomplete="name" placeholder="Full name" required>
@@ -171,6 +166,11 @@
           <label for="guestMessage" data-cfg="text.messageLabel">A Little Message</label>
           <textarea id="guestMessage" name="message" rows="3" maxlength="500" placeholder="Leave a little message for the couple..."></textarea>
         </div>
+
+        <fieldset class="field">
+          <legend>Send your reply to</legend>
+          <div id="rsvpTo" class="choices choices--pair"></div>
+        </fieldset>
 
         <button class="btn btn--solid btn--wide" type="submit">
           <svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true"><path d="M20 11.6A8 8 0 0 1 8.2 18.7L4 20l1.3-4A8 8 0 1 1 20 11.6Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M9.2 8.6c.3 2.9 2.500 5.200 5.600 5.700l1.100-1.300-1.900-1-.9.800c-1-.4-1.800-1.200-2.200-2.200l.8-.9-1-1.900-1.500.8Z" fill="currentColor"/></svg>
