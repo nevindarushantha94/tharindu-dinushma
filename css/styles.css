@@ -141,6 +141,9 @@ html:not(.intro-active) .intro:not(.is-leaving) { display: none; }
 .intro__open:active { transform: translateX(-50%) scale(.98); }
 .intro__open:disabled { cursor: default; animation: none; }
 .intro__open:disabled:hover { background: rgba(253, 251, 246, .9); color: var(--sage-deep); border-color: var(--sage); box-shadow: 0 14px 34px -18px rgba(79, 104, 79, .55); }
+/* .btn (declared later) sets background:transparent, which hid this button's ivory backing;
+   the new envelope poster is busier than plain cream, so give it a solid, legible backing. */
+.intro .intro__open { background: rgba(253, 251, 246, .93); }
 .intro.is-opening .intro__open-label { animation: softBlink 1.6s ease-in-out infinite; }
 /* the button leaves together with the poster, once the video is really playing */
 .intro.is-playing .intro__open { opacity: 0; visibility: hidden; transition: opacity .8s var(--ease), visibility 0s linear .8s; }
@@ -509,6 +512,92 @@ input[type="text"]:focus-visible, textarea:focus-visible { outline: none; }
 @keyframes musicSway { 0%, 100% { transform: translateY(0) rotate(0); } 50% { transform: translateY(-1.5px) rotate(-3deg); } }
 
 /* --------------------------------------------------------------------------
+   Luxury refinements — restrained details layered on the existing design
+   -------------------------------------------------------------------------- */
+
+/* Hero: the couple's names carry the page; a soft champagne glow lifts the portrait */
+.names .name { font-size: clamp(3.3rem, 15.6vw, 6rem); }
+.portrait { position: relative; }
+.portrait::before {
+  content: ""; position: absolute; z-index: -1; inset: -20% -28%;
+  background: radial-gradient(closest-side, rgba(232, 216, 176, .55), rgba(232, 216, 176, 0) 74%);
+  opacity: 0; pointer-events: none;
+  transition: opacity 2.6s var(--ease) .4s;
+}
+.portrait.in::before { opacity: 1; }
+
+/* Botanical details: slow sway + a few pixels of parallax (--py is set from js/main.js).
+   `rotate` and `translate` are separate properties, so they stack on the existing transforms. */
+.sprig, .ornament { translate: 0 var(--py, 0px); }
+.sprig { animation: sprigSway 9s ease-in-out infinite; }
+.sprig--r { animation-duration: 11s; animation-delay: -4s; }
+@keyframes sprigSway { 0%, 100% { rotate: -1.6deg; } 50% { rotate: 1.8deg; } }
+
+/* Countdown: framed like a printed card — fine gold rules with a small diamond on each */
+.cd { position: relative; padding: 1.5rem 0 1.4rem; }
+.cd::before, .cd::after {
+  content: ""; position: absolute; left: 6%; right: 6%; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold) 20%, var(--gold) 80%, transparent);
+  opacity: .75;
+}
+.cd::before { top: 0; } .cd::after { bottom: 0; }
+.cd__num { text-shadow: 0 1px 0 rgba(253, 251, 246, .7); }
+
+/* RSVP: calm, clear feedback */
+.choice--card span { position: relative; }
+.choice--card span::after {
+  content: ""; position: absolute; right: 1.05rem; top: 50%;
+  width: .62rem; height: .34rem; margin-top: -.3rem;
+  border-left: 1.5px solid var(--gold-soft); border-bottom: 1.5px solid var(--gold-soft);
+  transform: rotate(-45deg) scale(0); opacity: 0;
+  transition: transform .4s var(--ease), opacity .3s var(--ease);
+}
+.choice--card input:checked + span::after { transform: rotate(-45deg) scale(1); opacity: 1; }
+@media (hover: hover) { .choice span:hover { border-color: var(--sage); } }
+.choice input:checked + span { box-shadow: 0 10px 22px -16px rgba(79, 104, 79, .7); }
+.field.is-invalid input[type="text"] { border-bottom-color: #9a4a3a; }
+.field.is-invalid > legend, .field.is-invalid > label { color: #9a4a3a; }
+.field.is-invalid { animation: nudge .5s var(--ease); }
+@keyframes nudge { 0%, 100% { transform: none; } 25% { transform: translateX(-4px); } 60% { transform: translateX(3px); } }
+.rsvp__ready-warm { margin: 0 0 .5rem; font-size: 1.12rem; font-style: italic; line-height: 1.45; color: var(--ink); }
+.rsvp__ready-warm:empty { display: none; }
+
+/* Closing: the signature appears as if written, left to right */
+.signoff { white-space: normal; text-wrap: balance; padding-inline: .25rem; }
+.signoff.reveal.in { animation: inkWrite 2.6s cubic-bezier(.45, .05, .25, 1) .7s both; }
+@keyframes inkWrite {
+  from { clip-path: inset(-25% 100% -25% -5%); }
+  to   { clip-path: inset(-25% -5% -25% -5%); }
+}
+
+/* Short screens (small phones, 720px laptops): tighter hero so the Swipe Down hint stays in view */
+@media (max-height: 760px) {
+  .hero { padding-top: 3.4rem; }
+  .portrait { margin-bottom: 1rem; }
+  .hero .eyebrow { margin-bottom: .8rem; }
+  .lead { margin-top: .8rem; }
+  .names .name { font-size: clamp(3rem, 9svh, 5rem); }
+}
+@media (min-width: 900px) { .hero { padding-top: 3.4rem; } }
+
+/* Desktop & laptop: the invitation becomes a single ivory paper column over the forest */
+@media (min-width: 900px) {
+  main {
+    max-width: 46rem; margin: 0 auto;
+    background: rgba(250, 247, 239, .76);
+    box-shadow: 0 0 0 1px rgba(184, 153, 91, .3), 0 60px 120px -70px rgba(42, 47, 42, .55);
+  }
+  .portrait { width: clamp(190px, 28svh, 280px); margin-bottom: 1.1rem; }
+  .names .name { font-size: clamp(3.4rem, 9.5svh, 5.6rem); }
+  .names .and { font-size: clamp(1.4rem, 3.6svh, 2.1rem); }
+  .lead { max-width: 26rem; font-size: .82rem; }
+  .hero__date { font-size: .78rem; }
+  .sprig { width: 78px; }
+  .date__day { font-size: 6.8rem; }
+  .cd { max-width: 36rem; }
+}
+
+/* --------------------------------------------------------------------------
    Larger screens
    -------------------------------------------------------------------------- */
 @media (min-width: 768px) {
@@ -524,5 +613,10 @@ input[type="text"]:focus-visible, textarea:focus-visible { outline: none; }
   .reveal, .divider img, .cd.reveal .cd__item, .portrait__photo img { opacity: 1; transform: none; filter: none; }
   .ornament { opacity: .6; transform: none; }
   .sprig--l, .sprig--r { opacity: .5; }
+  .sprig, .signoff.reveal.in, .field.is-invalid { animation: none !important; }
+  .sprig, .ornament { translate: none; }
+  .signoff { clip-path: none; }
+  .portrait::before { transition-duration: .01s !important; }
+  .choice--card span::after { transition-duration: .01s !important; }
   .intro, .intro__video, .intro__poster, .reveal.in, .divider img, .cd__item, .btn, .portrait__photo img, .music, .music__slash, .maplink span, .maplink svg { transition-duration: .01s !important; transition-delay: 0s !important; }
 }

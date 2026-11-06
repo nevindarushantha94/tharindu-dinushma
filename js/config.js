@@ -64,7 +64,7 @@ window.WEDDING_CONFIG = {
   video: {
     src: "assets/video/opening.mp4",
     poster: "assets/video/poster.jpg",
-    version: "1",
+    version: "2",
     // Only used AFTER the guest has tapped, if the video cannot load or play:
     // the invitation then opens by itself after this many milliseconds.
     fallbackAutoOpenMs: 2500
@@ -127,6 +127,8 @@ window.WEDDING_CONFIG = {
     contactEyebrow: "Prefer to reach us directly?",
     thanks: "Your presence will make our special day even more memorable.",
     withLove: "With love and gratitude,",
+    rsvpWarmYes: "How wonderful — we can’t wait to celebrate with you.",
+    rsvpWarmNo: "We will miss you, and thank you for letting us know.",
     rsvpReadyTitle: "Your WhatsApp message is ready.",
     rsvpReadyBody: "Please press Send to confirm your response. Your RSVP is not complete until the message is sent."
   },

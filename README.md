@@ -19,6 +19,17 @@ assets/botanical/   divider.svg (sprig divider) · sprig.svg (single eucalyptus 
 vercel.json         caching + security headers
 ```
 
+## Design refinements (v8)
+Everything is layered on the existing design; no content, assets or RSVP flow changed.
+- **Hero:** larger names, soft champagne glow behind the portrait. Shorter screens get a tighter hero so *Swipe down* stays in view.
+- **Botanicals:** the two sprigs and the closing sprig sway slowly and drift a few pixels with the scroll (`data-parallax` in `index.html`, `initParallax()` in `js/main.js`). Switched off for guests with *reduce motion*.
+- **Countdown:** framed by fine gold rules.
+- **RSVP:** selected attendance shows a small champagne tick; an invalid field is marked in a soft red and nudges once; after WhatsApp opens, a warm line is shown above the *press Send* note (`text.rsvpWarmYes / rsvpWarmNo` in `js/config.js`). The note still says the RSVP is not complete until the guest presses Send.
+- **Closing:** the signature is revealed as if written.
+- **Desktop (≥ 900px):** the invitation sits in an ivory paper column over the forest.
+- The opening poster is also preloaded in `index.html` — keep its `?v=` equal to `video.version`.
+- The opening button now has a solid ivory backing (the `.btn` rule used to make it transparent).
+
 ## Background music
 `assets/audio/background-music.mp3` (settings in `js/config.js → music`).
 - It **never autoplays**. It starts only when the guest taps **Tap to Open Invitation**, with a gentle fade-in, together with the opening video (the video's own sound is ignored — it is muted).

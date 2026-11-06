@@ -499,11 +499,19 @@
       return r ? r.value : null;
     }
 
-    function setError(msg) {
+    var attendField = form.querySelector('input[name="attend"]').closest(".field");
+    function setError(msg, which) {
       status.className = "rsvp__status" + (msg ? " is-error" : "");
       status.textContent = msg;
       if (msg) ready.hidden = true;
+      // soft, accessible marker on the field that needs attention
+      nameEl.closest(".field").classList.toggle("is-invalid", which === "name");
+      nameEl.setAttribute("aria-invalid", which === "name" ? "true" : "false");
+      attendField.classList.toggle("is-invalid", which === "attend");
     }
+    nameEl.addEventListener("input", function () {
+      if (nameEl.closest(".field").classList.contains("is-invalid")) setError("");
+    });
 
     form.addEventListener("change", function (e) {
       if (e.target.name === "attend") setError("");
@@ -517,8 +525,8 @@
       var guestName = nameEl.value.replace(/\s+/g, " ").trim();
       var att = attendance();
 
-      if (guestName.length < 2) { setError("Please enter your name."); nameEl.focus(); return; }
-      if (!att) { setError("Please let us know if you can join us."); return; }
+      if (guestName.length < 2) { setError("Please enter your name.", "name"); nameEl.focus(); return; }
+      if (!att) { setError("Please let us know if you can join us.", "attend"); return; }
 
       var contact = cfg.rsvp.contacts[parseInt(form.elements.to.value, 10) || 0];
       var phone = L.normalizePhone(contact.phone, cfg.rsvp.countryCode);
@@ -543,7 +551,9 @@
       a.remove();
 
       // Quiet confirmation: the message is ready in WhatsApp, but nothing is sent until the guest presses Send.
-      status.className = "rsvp__status"; status.textContent = "";
+      setError("");
+      var warm = $("#rsvpWarm");
+      if (warm) warm.textContent = (att === "yes" ? cfg.text.rsvpWarmYes : cfg.text.rsvpWarmNo) || "";
       reopen.href = url;
       ready.hidden = false;
       ready.style.animation = "none"; void ready.offsetWidth; ready.style.animation = "";   // replay the soft entrance on every send
@@ -598,6 +608,32 @@
     });
   }
 
+  /* ------------------------------------------------------------------ *
+   * 7. Gentle parallax — botanical details drift a few pixels against the scroll.
+   *    One passive listener, one rAF per frame, only elements near the screen.
+   * ------------------------------------------------------------------ */
+  function initParallax() {
+    if (reduceMotion || !window.requestAnimationFrame) return;
+    var els = $$("[data-parallax]");
+    if (!els.length) return;
+    var queued = false;
+    function update() {
+      queued = false;
+      var vh = window.innerHeight || 800;
+      els.forEach(function (el) {
+        var r = el.getBoundingClientRect();
+        if (r.bottom < -240 || r.top > vh + 240) return;
+        var k = parseFloat(el.getAttribute("data-parallax")) || 0.05;
+        var off = (r.top + r.height / 2 - vh / 2) * k;
+        el.style.setProperty("--py", Math.max(-26, Math.min(26, -off)).toFixed(1) + "px");
+      });
+    }
+    function onScroll() { if (!queued) { queued = true; requestAnimationFrame(update); } }
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    update();
+  }
+
   /* ------------------------------------------------------------------ */
   applyConfig();
   bgCtl = initBackground();
@@ -605,5 +641,6 @@
   initCountdown();
   initRsvp();
   initContacts();
+  initParallax();
   initIntro();
 })();

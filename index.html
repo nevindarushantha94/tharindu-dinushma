@@ -28,6 +28,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Jost:wght@400;500&family=Pinyon+Script&display=swap" rel="stylesheet">
+  <!-- Opening poster: fetched early so the envelope is on screen at first paint.
+       Keep the ?v= in step with video.version in js/config.js. -->
+  <link rel="preload" as="image" href="assets/video/poster.jpg?v=2" fetchpriority="high">
   <link rel="stylesheet" href="css/styles.css">
 
   <!-- Flags: js enabled; show the opening video unless the link targets a section (#rsvp etc.) -->
@@ -50,7 +53,7 @@
        Poster and video files are set in js/config.js → video.
        The <video> has NO src and NO autoplay: js/main.js only loads and
        plays it after the guest taps "Tap to Open Invitation". -->
-  <div id="intro" class="intro" role="dialog" aria-label="Wedding invitation — tap to open">
+  <div id="intro" class="intro" role="dialog" aria-modal="true" aria-label="Wedding invitation — tap to open">
     <div class="intro__stage">
       <video id="introVideo" class="intro__video" muted playsinline preload="none"
              disablepictureinpicture disableremoteplayback tabindex="-1" aria-hidden="true"></video>
@@ -113,8 +116,8 @@
 
     <!-- 2 · Details -->
     <section class="section details" id="details">
-      <img class="sprig sprig--l" src="assets/botanical/sprig.svg" alt="" aria-hidden="true" loading="lazy" decoding="async" width="90" height="170">
-      <img class="sprig sprig--r" src="assets/botanical/sprig.svg" alt="" aria-hidden="true" loading="lazy" decoding="async" width="90" height="170">
+      <img class="sprig sprig--l" data-parallax="0.07" src="assets/botanical/sprig.svg" alt="" aria-hidden="true" loading="lazy" decoding="async" width="90" height="170">
+      <img class="sprig sprig--r" data-parallax="0.05" src="assets/botanical/sprig.svg" alt="" aria-hidden="true" loading="lazy" decoding="async" width="90" height="170">
 
       <p class="eyebrow reveal" data-cfg="text.detailsEyebrow"></p>
 
@@ -164,7 +167,7 @@
       <form id="rsvpForm" class="form reveal" style="--d:.3s" novalidate autocomplete="on">
         <div class="field">
           <label for="guestName">Your name</label>
-          <input id="guestName" name="name" type="text" maxlength="60" autocomplete="name" placeholder="Full name" required>
+          <input id="guestName" name="name" type="text" aria-describedby="rsvpStatus" maxlength="60" autocomplete="name" placeholder="Full name" required>
         </div>
 
         <fieldset class="field">
@@ -197,6 +200,7 @@
         <div id="rsvpReady" class="rsvp__ready" role="status" aria-live="polite" hidden>
           <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M20 11.6A8 8 0 0 1 8.2 18.7L4 20l1.3-4A8 8 0 1 1 20 11.6Z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
           <p class="rsvp__ready-title" data-cfg="text.rsvpReadyTitle"></p>
+          <p class="rsvp__ready-warm" id="rsvpWarm"></p>
           <p class="rsvp__ready-body" data-cfg="text.rsvpReadyBody"></p>
           <a id="rsvpReopen" class="rsvp__ready-link" target="_blank" rel="noopener noreferrer">Open WhatsApp again</a>
         </div>
@@ -217,7 +221,7 @@
       <p class="thanks reveal" style="--d:.15s" data-cfg="text.thanks"></p>
       <p class="withlove reveal" style="--d:.35s" data-cfg="text.withLove"></p>
       <p class="script signoff reveal" style="--d:.55s"><span data-cfg="couple.first"></span> &amp; <span data-cfg="couple.second"></span></p>
-      <img class="ornament reveal" style="--d:.75s" src="assets/botanical/sprig.svg" alt="" aria-hidden="true" loading="lazy" decoding="async" width="90" height="170">
+      <img class="ornament reveal" data-parallax="0.04" style="--d:.75s" src="assets/botanical/sprig.svg" alt="" aria-hidden="true" loading="lazy" decoding="async" width="90" height="170">
 
       <p id="credit" class="credit"></p>
     </section>
