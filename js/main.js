@@ -46,9 +46,11 @@
    * 2. Scroll reveals
    * ------------------------------------------------------------------ */
   var revealsStarted = false;
+  var bgCtl = null; // set by initBackground()
   function startReveals() {
     if (revealsStarted) return;
     revealsStarted = true;
+    if (bgCtl) bgCtl.start();
     var els = $$(".reveal");
     if (reduceMotion || !("IntersectionObserver" in window)) {
       els.forEach(function (el) { el.classList.add("in"); });
@@ -65,6 +67,43 @@
       });
     }, { threshold: 0.18, rootMargin: "0px 0px -6% 0px" });
     els.forEach(function (el) { io.observe(el); });
+  }
+
+  /* ------------------------------------------------------------------ *
+   * 2b. Looping background video (starts when the opening video fades)
+   * ------------------------------------------------------------------ */
+  function initBackground() {
+    var c = cfg.background;
+    var bg = $("#bg");
+    var v = $("#bgVideo");
+    if (!bg || !v) return null;
+    if (!c || !c.src) { bg.remove(); return null; }
+
+    function versioned(url) {
+      return url + (c.version ? (url.indexOf("?") > -1 ? "&" : "?") + "v=" + encodeURIComponent(c.version) : "");
+    }
+    if (typeof c.opacity === "number") bg.style.setProperty("--bg-opacity", c.opacity);
+
+    v.muted = true; v.defaultMuted = true; v.loop = true; v.playsInline = true;
+    v.setAttribute("playsinline", ""); v.setAttribute("webkit-playsinline", "");
+    if (c.poster) v.poster = versioned(c.poster);
+    // Missing/broken file: quietly fall back to the plain ivory page.
+    v.addEventListener("error", function () { bg.remove(); });
+    v.src = versioned(c.src);
+
+    var on = false;
+    function play() {
+      if (reduceMotion) return; // reduced motion: keep the still poster
+      var p = v.play();
+      if (p && p.catch) p.catch(function () { /* autoplay blocked: poster stays visible */ });
+    }
+    document.addEventListener("visibilitychange", function () {
+      if (!on) return;
+      if (document.hidden) v.pause(); else play();
+    });
+    return {
+      start: function () { on = true; bg.classList.add("is-on"); play(); }
+    };
   }
 
   /* ------------------------------------------------------------------ *
@@ -347,6 +386,7 @@
 
   /* ------------------------------------------------------------------ */
   applyConfig();
+  bgCtl = initBackground();
   initCountdown();
   initRsvp();
   initIntro();

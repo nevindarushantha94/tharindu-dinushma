@@ -46,6 +46,20 @@ window.WEDDING_CONFIG = {
     fallbackAutoOpenMs: 5000
   },
 
+  /* ---- Background video -------------------------------------------------
+     A silent, looping video behind the whole invitation. It starts as the
+     opening video fades out.
+     opacity: 0 (invisible) … 1 (full). Try 0.15–0.35 for a soft, elegant look.
+     The footage is pre-lightened inside the file itself (see README) so it stays smooth on phones.
+     Leave `src` empty ("") to turn the background video off.
+     Replacing the file with the same name? bump `version`.                  */
+  background: {
+    src: "assets/video/background.mp4",
+    poster: "assets/video/background-poster.jpg",
+    version: "1",
+    opacity: 0.26
+  },
+
   /* ---- RSVP (WhatsApp) -------------------------------------------------- */
   rsvp: {
     deadlineText: "Kindly respond by 20 November 2026",

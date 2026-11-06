@@ -8,9 +8,11 @@ css/styles.css      design system, layout, animation
 js/config.js        ★ ALL wedding details + video path — the only file you edit
 js/logic.js         countdown / date / WhatsApp helpers (pure functions)
 js/main.js          intro video, reveals, countdown, RSVP
-assets/video/       opening.mp4  ← replace with the Google Flow video
-                    poster.jpg   ← frame shown while the video loads
-assets/botanical/   SVG leaf artwork
+assets/video/       opening.mp4            ← opening video (Google Flow)
+                    poster.jpg             ← frame shown while the opening video loads
+                    background.mp4         ← looping forest background (silent)
+                    background-poster.jpg  ← still frame used if the background can't play
+assets/botanical/   divider.svg (small sprig divider)
 vercel.json         caching + security headers
 ```
 
@@ -22,6 +24,17 @@ vercel.json         caching + security headers
 
 The site never depends on the video length: it moves on when the video ends, so any duration works.
 Leave `video.src` as `""` to skip the video and use the elegant fallback.
+
+## Background video (looping)
+A silent, looping video sits behind the whole invitation at low opacity. It starts fading in as the opening video fades out.
+- Strength: change `background.opacity` in `js/config.js` (0.15 = very faint, 0.35 = clearly visible; currently 0.26).
+- Turn it off: set `background.src` to `""`.
+- If the file is missing, or the guest has "reduce motion" on, the page quietly shows a plain ivory background / still frame.
+- The loop is seamless (the last second is cross-faded into the first), and the footage is pre-lightened so it reads as a soft texture. To prepare a different clip the same way (720×1280, no audio, ~11 s, seamless loop):
+  ```
+  ffmpeg -i source.mp4 -filter_complex "[0:v]scale=720:1280,fps=30,lutrgb=r='clip(val*1.6,0,255)':g='clip(val*1.6,0,255)':b='clip(val*1.6,0,255)',eq=saturation=0.85,split=3[h][m][t];[t]trim=start=11:end=12,setpts=PTS-STARTPTS[tail];[h]trim=start=0:end=1,setpts=PTS-STARTPTS[head];[m]trim=start=1:end=11,setpts=PTS-STARTPTS[mid];[tail][head]xfade=transition=fade:duration=1:offset=0[x];[x][mid]concat=n=2:v=1:a=0,format=yuv420p[v]" -map "[v]" -c:v libx264 -crf 27 -movflags +faststart -an assets/video/background.mp4
+  ```
+  (this assumes a 12-second source; adjust the trim times for other lengths). Then bump `background.version`.
 
 ## Edit details
 Names, date/time, venue, map link, RSVP numbers, deadline and all wording are in `js/config.js`.

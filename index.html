@@ -24,6 +24,14 @@
 </head>
 <body>
 
+  <!-- ================= BACKGROUND VIDEO (looping, low opacity) =================
+       File: assets/video/background.mp4  (set in js/config.js → background) -->
+  <div id="bg" class="bg" aria-hidden="true">
+    <video id="bgVideo" class="bg__video" muted loop playsinline preload="auto"
+           disablepictureinpicture disableremoteplayback tabindex="-1"></video>
+    <div class="bg__veil"></div>
+  </div>
+
   <!-- ================= OPENING VIDEO =================
        Video file: assets/video/opening.mp4  (set in js/config.js → video.src) -->
   <div id="intro" class="intro" role="dialog" aria-label="Opening animation">
@@ -33,7 +41,6 @@
 
       <!-- Shown only when the video is missing or cannot play -->
       <div class="intro__fallback" aria-hidden="true">
-        <img class="intro__fallback-art" src="assets/botanical/top.svg" alt="" decoding="async">
         <div class="intro__fallback-names">
           <span class="script" data-cfg="couple.first"></span>
           <span class="script and" data-cfg="couple.and"></span>
@@ -53,9 +60,6 @@
 
     <!-- 1 · Hero -->
     <section class="hero" id="top">
-      <div class="garland garland--top" aria-hidden="true">
-        <img src="assets/botanical/top.svg" alt="" width="900" height="640" decoding="async">
-      </div>
 
       <div class="hero__inner">
         <p class="eyebrow reveal" style="--d:.1s" data-cfg="text.eyebrow"></p>
@@ -72,8 +76,6 @@
 
     <!-- 2 · Details -->
     <section class="section details" id="details">
-      <img class="side-sprig side-sprig--l" src="assets/botanical/sprig-left.svg" alt="" aria-hidden="true" loading="lazy" decoding="async">
-      <img class="side-sprig side-sprig--r" src="assets/botanical/sprig-left.svg" alt="" aria-hidden="true" loading="lazy" decoding="async">
 
       <p class="eyebrow reveal" data-cfg="text.detailsEyebrow"></p>
 
@@ -113,7 +115,6 @@
 
     <!-- 4 · RSVP -->
     <section class="section rsvp" id="rsvp">
-      <img class="side-sprig side-sprig--r" src="assets/botanical/sprig-left.svg" alt="" aria-hidden="true" loading="lazy" decoding="async">
 
       <p class="eyebrow reveal" data-cfg="text.rsvpEyebrow"></p>
       <h2 class="script title reveal" style="--d:.12s" data-cfg="text.rsvpTitle"></h2>
@@ -172,10 +173,6 @@
       <p class="script signoff reveal" style="--d:.55s"><span data-cfg="couple.first"></span> &amp; <span data-cfg="couple.second"></span></p>
 
       <p id="credit" class="credit"></p>
-
-      <div class="garland garland--bottom" aria-hidden="true">
-        <img src="assets/botanical/bottom.svg" alt="" width="900" height="392" loading="lazy" decoding="async">
-      </div>
     </section>
   </main>
 
