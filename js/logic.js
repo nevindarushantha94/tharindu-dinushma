@@ -59,16 +59,24 @@
     return digits;
   }
 
+  /** Tidy the optional personal message: trim, normalise line breaks, cap blank lines and length. */
+  function cleanMessage(raw, max) {
+    var t = String(raw || "").replace(/\r\n?/g, "\n").replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
+    return t.length > (max || 500) ? t.slice(0, max || 500).trim() : t;
+  }
+
+  /** Pre-filled WhatsApp RSVP. The personal message is optional. */
   function buildMessage(o) {
+    var note = cleanMessage(o.message);
     var lines = [
       "Hello " + o.toName + "! 🌿",
-      "I would like to reply to your wedding invitation.",
+      "Thank you for your beautiful invitation. I would like to reply to it.",
       "",
       "Name: " + o.guestName,
       "Response: " + (o.attending ? "Joyfully Accept" : "Regretfully Decline")
     ];
-    if (o.attending) lines.push("Number of guests: " + o.guests);
-    lines.push("", o.eventLine);
+    if (note) lines.push("", "A little message:", note);
+    lines.push("", o.eventLine, "", "With love, " + o.guestName);
     return lines.join("\n");
   }
 
@@ -82,6 +90,7 @@
     ordinalSuffix: ordinalSuffix,
     dateParts: dateParts,
     normalizePhone: normalizePhone,
+    cleanMessage: cleanMessage,
     buildMessage: buildMessage,
     buildWhatsAppUrl: buildWhatsAppUrl
   };

@@ -4,6 +4,19 @@
    ========================================================================== */
 window.WEDDING_CONFIG = {
 
+  /* ---- Website & social sharing -----------------------------------------
+     url: the final public address of this invitation, e.g.
+          "https://your-domain.com/"  (leave "" until it is deployed).
+     Link previews (WhatsApp, Facebook, iMessage …) need ABSOLUTE addresses
+     inside index.html. After deploying, run once:
+          node scripts/set-site-url.js https://your-domain.com/
+     (see README → Social sharing). The preview image is
+     assets/social/og-image.jpg (1200×630).                                  */
+  site: {
+    url: "",
+    shareImage: "assets/social/og-image.jpg"
+  },
+
   /* ---- Couple ---------------------------------------------------------- */
   couple: {
     first: "Tharindu",
@@ -32,18 +45,22 @@ window.WEDDING_CONFIG = {
   },
 
   /* ---- Opening video ----------------------------------------------------
+     The guest always opens the invitation themselves: the poster and a
+     "Tap to Open Invitation" button are shown first, and the video is only
+     loaded and played AFTER that tap — it never starts on its own.
      TO REPLACE THE VIDEO: overwrite  assets/video/opening.mp4  with your
      Google Flow video (keep the file name), or change `src` below.
      If the new file has the same name, bump `version` (1 → 2) so guests who
      already opened the site don't get the old cached video.
-     Leave `src` empty ("") to skip the video and show the elegant fallback. */
+     Leave `src` empty ("") to skip the video: the tap then opens the
+     invitation after a short elegant fallback.                              */
   video: {
     src: "assets/video/opening.mp4",
     poster: "assets/video/poster.jpg",
     version: "1",
-    // If the video can't load, the invitation opens by itself after this many
-    // milliseconds (set to 0 to wait for the "Open Invitation" button instead).
-    fallbackAutoOpenMs: 5000
+    // Only used AFTER the guest has tapped, if the video cannot load or play:
+    // the invitation then opens by itself after this many milliseconds.
+    fallbackAutoOpenMs: 2500
   },
 
   /* ---- Background video -------------------------------------------------
@@ -63,11 +80,11 @@ window.WEDDING_CONFIG = {
   /* ---- RSVP (WhatsApp) -------------------------------------------------- */
   rsvp: {
     deadlineText: "Kindly respond by 20 November 2026",
-    maxGuests: 10,
     countryCode: "94", // Sri Lanka — numbers starting with 0 are converted automatically
+    // `role` is shown in the contact area below the form.
     contacts: [
-      { name: "Tharindu", phone: "0710842583" },
-      { name: "Dinushma", phone: "0763818147" }
+      { name: "Tharindu", role: "Groom", phone: "0710842583" },
+      { name: "Dinushma", role: "Bride", phone: "0763818147" }
     ]
   },
 
@@ -81,6 +98,10 @@ window.WEDDING_CONFIG = {
     countdownDone: "Today is the day — see you at the celebration",
     rsvpEyebrow: "RSVP",
     rsvpTitle: "Will you join us?",
+    swipe: "Swipe down",
+    messageLabel: "A Little Message",
+    messagePlaceholder: "Leave a little message for the couple...",
+    contactEyebrow: "Prefer to reach us directly?",
     thanks: "Your presence will make our special day even more memorable.",
     withLove: "With love,"
   },

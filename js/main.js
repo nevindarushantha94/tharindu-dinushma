@@ -1,5 +1,5 @@
 /* Tharindu & Dinushma — invitation behaviour.
-   Sections: config binding · opening video · reveals · countdown · RSVP */
+   Sections: config binding · reveals · background · tap-to-open intro · countdown · RSVP · contacts */
 (function () {
   "use strict";
 
@@ -38,6 +38,17 @@
 
     var credit = $("#credit");
     if (cfg.credit) credit.textContent = cfg.credit; else credit.hidden = true;
+
+    var ph = get("text.messagePlaceholder");
+    if (ph) $("#guestMessage").placeholder = ph;
+
+    // Keep share/canonical URLs in step with config (crawlers read index.html itself — see README).
+    if (cfg.site && cfg.site.url) {
+      var base = cfg.site.url.replace(/\/?$/, "/");
+      var set = function (sel, val) { var el = $(sel); if (el) el.setAttribute(el.tagName === "LINK" ? "href" : "content", val); };
+      set('link[rel="canonical"]', base);
+      set('meta[property="og:url"]', base);
+    }
 
     document.title = cfg.couple.first + " & " + cfg.couple.second + " · Wedding Invitation";
   }
@@ -89,9 +100,16 @@
     if (c.poster) v.poster = versioned(c.poster);
     // Missing/broken file: quietly fall back to the plain ivory page.
     v.addEventListener("error", function () { bg.remove(); });
-    v.src = versioned(c.src);
 
-    var on = false;
+    // The file is only requested once the guest has tapped (so it never competes
+    // with the poster), and only played when the invitation appears.
+    var loaded = false, on = false;
+    function load() {
+      if (loaded) return;
+      loaded = true;
+      v.preload = "auto";
+      v.src = versioned(c.src);
+    }
     function play() {
       if (reduceMotion) return; // reduced motion: keep the still poster
       var p = v.play();
@@ -102,7 +120,8 @@
       if (document.hidden) v.pause(); else play();
     });
     return {
-      start: function () { on = true; bg.classList.add("is-on"); play(); }
+      load: load,
+      start: function () { load(); on = true; bg.classList.add("is-on"); play(); }
     };
   }
 
@@ -123,16 +142,24 @@
     main.inert = true;
 
     var video = $("#introVideo");
+    var poster = $("#introPoster");
     var openBtn = $("#introOpen");
+    var label = $(".intro__open-label", openBtn);
     var skipBtn = $("#introSkip");
     var cfgV = cfg.video || {};
+    var opened = false;    // the guest has tapped (set once — blocks duplicate taps)
+    var started = false;   // the video is really rendering frames
     var finished = false;
-    var started = false;
-    var mode = "video"; // "video" | "fallback" | "button-only"
     var timers = {};
 
+    function versioned(url) {
+      if (!url) return "";
+      return url + (cfgV.version ? (url.indexOf("?") > -1 ? "&" : "?") + "v=" + encodeURIComponent(cfgV.version) : "");
+    }
     function clearAll() { Object.keys(timers).forEach(function (k) { clearTimeout(timers[k]); }); }
 
+    /* Move on to the invitation. Only ever reached after the guest's tap
+       (video ended / video failed / reduced-motion), or via the Skip button. */
     function finish() {
       if (finished) return;
       finished = true;
@@ -148,94 +175,92 @@
       }, reduceMotion ? 50 : 1500);
     }
 
-    function showOpenButton() {
+    /* Elegant fallback (video missing / unplayable). The guest has already tapped,
+       so opening automatically after a short pause respects their choice. */
+    function fallback() {
       if (finished) return;
-      intro.classList.add("show-open");
-      openBtn.focus({ preventScroll: true });
+      intro.classList.add("is-fallback", "is-playing");
+      try { video.pause(); } catch (e) {}
+      timers.fallback = setTimeout(finish, cfgV.fallbackAutoOpenMs > 0 ? cfgV.fallbackAutoOpenMs : 2500);
     }
 
-    function showFallback() {
-      if (finished) return;
-      mode = "fallback";
-      intro.classList.add("is-fallback");
-      showOpenButton();
-      if (cfgV.fallbackAutoOpenMs > 0) timers.fallback = setTimeout(finish, cfgV.fallbackAutoOpenMs);
-    }
-
-    function versioned(url) {
-      if (!url) return "";
-      return url + (cfgV.version ? (url.indexOf("?") > -1 ? "&" : "?") + "v=" + encodeURIComponent(cfgV.version) : "");
-    }
-
-    openBtn.addEventListener("click", function () {
-      if (mode === "video" && !started && !reduceMotion) {
-        // Autoplay was blocked: the tap is the user gesture that lets it play.
-        intro.classList.remove("show-open");
-        var p = video.play();
-        if (p && p.catch) p.catch(finish);
-        timers.stall = setTimeout(function () { if (!started) finish(); }, 5000);
-      } else {
-        finish();
-      }
-    });
-    skipBtn.addEventListener("click", finish);
-    document.addEventListener("keydown", function (e) {
-      if (e.key === "Escape" && !finished) finish();
-    });
-
-    // No video configured -> elegant fallback.
-    if (!cfgV.src) { showFallback(); return; }
-
-    // Reduced-motion users get the quiet fallback with a button, no autoplay.
-    if (reduceMotion) {
-      video.removeAttribute("autoplay");
-      mode = "button-only";
-      intro.classList.add("is-fallback");
-      showOpenButton();
-      return;
-    }
-
-    video.muted = true;
-    video.defaultMuted = true;
-    video.playsInline = true;
-    video.setAttribute("playsinline", "");
-    video.setAttribute("webkit-playsinline", "");
-    if (cfgV.poster) video.poster = versioned(cfgV.poster);
-
-    video.addEventListener("playing", function () {
+    /* The video is rendering: only now does the poster (and button) fade away. */
+    function revealVideo() {
+      if (started || finished) return;
       started = true;
       clearTimeout(timers.stall);
-      clearTimeout(timers.wait);
       intro.classList.add("is-playing");
-      intro.classList.remove("show-open");
-      // Safety net: if "ended" never fires, move on shortly after the clip should be over.
       if (isFinite(video.duration) && video.duration > 0) {
-        clearTimeout(timers.watchdog);
-        timers.watchdog = setTimeout(finish, (video.duration - video.currentTime) * 1000 + 2500);
+        // Safety net: if "ended" never fires, move on shortly after the clip should be over.
+        timers.watchdog = setTimeout(finish, Math.max(0, video.duration - video.currentTime) * 1000 + 2500);
       }
       timers.skip = setTimeout(function () { intro.classList.add("show-skip"); }, 1200);
-    });
-    video.addEventListener("waiting", function () {
-      if (started) timers.wait = setTimeout(finish, 7000); // long stall mid-video
-    });
-    video.addEventListener("ended", finish);
-    video.addEventListener("error", function () {
-      if (started) finish(); else showFallback();
-    });
-
-    video.src = versioned(cfgV.src);
-
-    var p = video.play();
-    if (p && p.catch) {
-      p.catch(function (err) {
-        if (err && err.name === "NotSupportedError") showFallback();
-        else showOpenButton(); // autoplay blocked
-      });
     }
-    // Autoplay can fail silently (e.g. iOS Low Power Mode): show the button if nothing starts.
-    timers.stall = setTimeout(function () { if (!started && !finished && !intro.classList.contains("is-fallback")) showOpenButton(); }, 3000);
 
-    if (video.error) showFallback();
+    /* ---- Poster: shown immediately; if it can't load, the names show instead ---- */
+    if (cfgV.poster) {
+      poster.addEventListener("error", function () { intro.classList.add("no-poster"); });
+      poster.src = versioned(cfgV.poster);
+    } else {
+      intro.classList.add("no-poster");
+    }
+
+    /* ---- The tap ---- */
+    openBtn.addEventListener("click", function () {
+      if (opened) return;           // no duplicate clicks / repeated playback
+      opened = true;
+      openBtn.disabled = true;
+      openBtn.setAttribute("aria-busy", "true");
+      intro.classList.add("is-opening");
+      label.textContent = "Opening\u2026";
+      if (bgCtl) bgCtl.load();
+
+      // No video configured, or the guest prefers reduced motion: skip the film.
+      if (!cfgV.src || reduceMotion) { cfgV.src ? finish() : fallback(); return; }
+
+      video.muted = true;
+      video.defaultMuted = true;
+      video.playsInline = true;
+      video.setAttribute("playsinline", "");
+      video.setAttribute("webkit-playsinline", "");
+
+      video.addEventListener("playing", function onPlaying() {
+        video.removeEventListener("playing", onPlaying);
+        // Wait for a real painted frame where the browser can tell us (so the poster
+        // never fades onto a blank video); otherwise "playing" is good enough.
+        if (video.requestVideoFrameCallback) {
+          var done = false;
+          var go = function () { if (!done) { done = true; revealVideo(); } };
+          video.requestVideoFrameCallback(go);
+          setTimeout(go, 600);
+        } else {
+          revealVideo();
+        }
+      });
+      video.addEventListener("ended", finish);
+      video.addEventListener("error", function () { if (started) finish(); else fallback(); });
+      video.addEventListener("waiting", function () {
+        if (started) { clearTimeout(timers.wait); timers.wait = setTimeout(finish, 7000); } // long stall mid-video
+      });
+      video.addEventListener("playing", function () { clearTimeout(timers.wait); });
+
+      // Load + play inside the tap itself — this is what lets iOS/Android start it.
+      video.currentTime = 0;
+      video.preload = "auto";
+      video.src = versioned(cfgV.src);
+      var p = video.play();
+      if (p && p.catch) {
+        p.catch(function () { if (!started) fallback(); });
+      }
+      // Never leave the guest staring at "Opening…": give up on a video that never starts.
+      timers.stall = setTimeout(function () { if (!started) fallback(); }, 8000);
+    });
+
+    // Skip is offered only once the film is playing; Escape works the same way.
+    skipBtn.addEventListener("click", function () { if (opened) finish(); });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && opened && !finished) finish();
+    });
   }
 
   /* ------------------------------------------------------------------ *
@@ -293,12 +318,8 @@
     var form = $("#rsvpForm");
     var toWrap = $("#rsvpTo");
     var nameEl = $("#guestName");
-    var guestsEl = $("#guestCount");
-    var guestsRow = $("#guestsRow");
+    var msgEl = $("#guestMessage");
     var status = $("#rsvpStatus");
-    var max = cfg.rsvp.maxGuests || 10;
-
-    guestsEl.max = String(max);
 
     // Recipient choices from config
     cfg.rsvp.contacts.forEach(function (c, i) {
@@ -317,37 +338,20 @@
       return r ? r.value : null;
     }
 
-    form.addEventListener("change", function (e) {
-      if (e.target.name === "attend") {
-        guestsRow.classList.toggle("is-collapsed", attendance() === "no");
-        setError("");
-      }
-    });
-
-    // Stepper
-    $$("[data-step]", form).forEach(function (btn) {
-      btn.addEventListener("click", function () {
-        var v = parseInt(guestsEl.value, 10) || 1;
-        v += parseInt(btn.getAttribute("data-step"), 10);
-        guestsEl.value = String(Math.min(max, Math.max(1, v)));
-      });
-    });
-    guestsEl.addEventListener("blur", function () {
-      var v = parseInt(guestsEl.value, 10);
-      guestsEl.value = String(isNaN(v) ? 1 : Math.min(max, Math.max(1, v)));
-    });
-
     function setError(msg) {
       status.className = "rsvp__status" + (msg ? " is-error" : "");
       status.textContent = msg;
     }
+
+    form.addEventListener("change", function (e) {
+      if (e.target.name === "attend") setError("");
+    });
 
     form.addEventListener("submit", function (e) {
       e.preventDefault();
 
       var guestName = nameEl.value.replace(/\s+/g, " ").trim();
       var att = attendance();
-      var guests = Math.min(max, Math.max(1, parseInt(guestsEl.value, 10) || 1));
 
       if (guestName.length < 2) { setError("Please enter your name."); nameEl.focus(); return; }
       if (!att) { setError("Please let us know if you can join us."); return; }
@@ -360,7 +364,7 @@
         toName: contact.name,
         guestName: guestName,
         attending: att === "yes",
-        guests: guests,
+        message: msgEl.value, // optional — may be blank
         eventLine: d.weekday + ", " + d.day + " " + d.month + " " + d.year + " · " + cfg.venue.name + ", " + cfg.venue.area
       });
       var url = L.buildWhatsAppUrl(phone, message);
@@ -384,10 +388,52 @@
     });
   }
 
+  /* ------------------------------------------------------------------ *
+   * 6. Contact area (Call + WhatsApp chat for each of the couple)
+   * ------------------------------------------------------------------ */
+  var ICON_CALL = '<svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path d="M6.6 3.5h3l1.4 4-2 1.3a11 11 0 0 0 5.2 5.2l1.3-2 4 1.4v3a2 2 0 0 1-2.2 2A15.5 15.5 0 0 1 4.6 5.7a2 2 0 0 1 2-2.2Z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>';
+  var ICON_WA = '<svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path d="M20 11.6A8 8 0 0 1 8.2 18.7L4 20l1.3-4A8 8 0 1 1 20 11.6Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M9.2 8.6c.3 2.9 2.500 5.200 5.600 5.700l1.100-1.300-1.900-1-.9.800c-1-.4-1.800-1.200-2.200-2.200l.8-.9-1-1.900-1.500.8Z" fill="currentColor"/></svg>';
+
+  function initContacts() {
+    var grid = $("#contactGrid");
+    if (!grid) return;
+    cfg.rsvp.contacts.forEach(function (c, i) {
+      var intl = L.normalizePhone(c.phone, cfg.rsvp.countryCode);
+      var card = document.createElement("div");
+      card.className = "contact__card reveal";
+      card.style.setProperty("--d", (0.12 + i * 0.14) + "s");
+
+      var name = document.createElement("p");
+      name.className = "script contact__name";
+      name.textContent = c.name;
+      var role = document.createElement("p");
+      role.className = "contact__role";
+      role.textContent = c.role || "";
+
+      var call = document.createElement("a");
+      call.className = "btn contact__btn";
+      call.href = "tel:+" + intl;
+      call.setAttribute("aria-label", "Call " + c.name);
+      call.innerHTML = ICON_CALL + "<span>Normal Call</span>";
+
+      var wa = document.createElement("a");
+      wa.className = "btn contact__btn";
+      wa.href = "https://wa.me/" + intl;
+      wa.target = "_blank";
+      wa.rel = "noopener noreferrer";
+      wa.setAttribute("aria-label", "Send " + c.name + " a WhatsApp message");
+      wa.innerHTML = ICON_WA + "<span>WhatsApp Message</span>";
+
+      card.append(name, role, call, wa);
+      grid.appendChild(card);
+    });
+  }
+
   /* ------------------------------------------------------------------ */
   applyConfig();
   bgCtl = initBackground();
   initCountdown();
   initRsvp();
+  initContacts();
   initIntro();
 })();

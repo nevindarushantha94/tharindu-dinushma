@@ -7,7 +7,9 @@ index.html          page markup
 css/styles.css      design system, layout, animation
 js/config.js        ★ ALL wedding details + video path — the only file you edit
 js/logic.js         countdown / date / WhatsApp helpers (pure functions)
-js/main.js          intro video, reveals, countdown, RSVP
+js/main.js          tap-to-open intro, reveals, countdown, RSVP, contacts
+scripts/set-site-url.js   makes social-share tags absolute once you have your domain
+assets/social/      og-image.jpg  ← 1200×630 link-preview image
 assets/video/       opening.mp4            ← opening video (Google Flow)
                     poster.jpg             ← frame shown while the opening video loads
                     background.mp4         ← looping forest background (silent)
@@ -15,6 +17,13 @@ assets/video/       opening.mp4            ← opening video (Google Flow)
 assets/botanical/   divider.svg (small sprig divider)
 vercel.json         caching + security headers
 ```
+
+## How the opening works
+1. The poster (`video.poster`) and a **Tap to Open Invitation** button appear straight away.
+2. The video is not loaded or played until the guest taps. It starts from the beginning; the poster fades only once frames are really rendering; when it ends, the invitation appears.
+3. If the video can't load/play (or `video.src` is `""`), the elegant names fallback shows and — because the guest has already tapped — the invitation opens after `video.fallbackAutoOpenMs`.
+4. Guests with "reduce motion" switched on skip the film: the tap opens the invitation directly.
+5. Links that point at a section (e.g. `…/#rsvp`) skip the opening, which is handy for testing.
 
 ## Replace the opening video
 1. Export the Google Flow video as **MP4 (H.264), 9:16 vertical** — 1080×1920 (or 720×1280 for faster loading), no audio, ideally under ~6 MB.
@@ -24,6 +33,9 @@ vercel.json         caching + security headers
 
 The site never depends on the video length: it moves on when the video ends, so any duration works.
 Leave `video.src` as `""` to skip the video and use the elegant fallback.
+
+## RSVP & contacts
+The form collects only the guest's name, attendance and an optional *A Little Message*; it opens a pre-filled WhatsApp chat with the chosen person (Tharindu / Dinushma). Below the form, each of them has a **Normal Call** (`tel:`) and **WhatsApp Message** (`wa.me`) button. Names, roles and numbers live in `js/config.js → rsvp.contacts`.
 
 ## Background video (looping)
 A silent, looping video sits behind the whole invitation at low opacity. It starts fading in as the opening video fades out.
@@ -40,6 +52,13 @@ A silent, looping video sits behind the whole invitation at low opacity. It star
 Names, date/time, venue, map link, RSVP numbers, deadline and all wording are in `js/config.js`.
 The date, weekday and countdown are all calculated from `event.dateTime` (`2026-12-05T11:00:00+05:30`).
 Note: the `<title>` and social-preview tags in `index.html` also contain the names — change them there too if names ever change.
+
+## Social sharing (link previews)
+Title, description and the preview image (`assets/social/og-image.jpg`, 1200×630) are already set in `index.html`. Link-preview crawlers need **absolute** addresses and don't run JavaScript, so once you know your final address run, once:
+```
+node scripts/set-site-url.js https://your-domain.com/
+```
+It fills in `og:url`, `og:image`, `twitter:image`, the canonical link and `site.url` in `js/config.js`. Until then the tags hold site-relative paths (the page itself works normally). After sharing, WhatsApp/Facebook cache previews — use Facebook's Sharing Debugger to refresh.
 
 ## Deploy to Vercel
 - Drag the folder into https://vercel.com/new, or: `npm i -g vercel && vercel --prod` from this folder.
