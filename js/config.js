@@ -44,6 +44,13 @@ window.WEDDING_CONFIG = {
     mapsUrl: "https://www.google.com/maps/search/?api=1&query=Ranowell+Hotel+Kochchikade"
   },
 
+  /* ---- Couple photograph (hero) -----------------------------------------
+     src: the single portrait shown in the hero. Keep it portrait (about 2:3);
+     it is never cropped or stretched. Leave src empty ("") to hide it.      */
+  photo: {
+    src: "assets/photos/couple.jpg"
+  },
+
   /* ---- Opening video ----------------------------------------------------
      The guest always opens the invitation themselves: the poster and a
      "Tap to Open Invitation" button are shown first, and the video is only

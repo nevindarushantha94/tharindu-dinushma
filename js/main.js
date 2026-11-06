@@ -39,6 +39,16 @@
     var credit = $("#credit");
     if (cfg.credit) credit.textContent = cfg.credit; else credit.hidden = true;
 
+    $("#heroDate").textContent = d.weekday + ", " + d.day + " " + d.month + " " + d.year;
+
+    // Hero photograph: path comes from config; hide the frame if unset or missing.
+    var fig = $("#portrait"), img = $("#portraitImg");
+    if (!cfg.photo || !cfg.photo.src) { fig.remove(); }
+    else {
+      img.addEventListener("error", function () { fig.remove(); });
+      if (img.getAttribute("src") !== cfg.photo.src) img.src = cfg.photo.src;
+    }
+
     var ph = get("text.messagePlaceholder");
     if (ph) $("#guestMessage").placeholder = ph;
 

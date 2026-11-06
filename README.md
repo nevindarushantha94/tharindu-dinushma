@@ -18,6 +18,9 @@ assets/botanical/   divider.svg (small sprig divider)
 vercel.json         caching + security headers
 ```
 
+## Couple photograph
+The single hero portrait is `assets/photos/couple.jpg` (path in `js/config.js → photo.src`). It is shown uncropped at its own 2:3 shape inside an arched gold-and-ivory frame. To change it, overwrite the file with another portrait photo of about the same shape; set `photo.src` to `""` to hide it.
+
 ## How the opening works
 1. The poster (`video.poster`) and a **Tap to Open Invitation** button appear straight away.
 2. The video is not loaded or played until the guest taps. It starts from the beginning; the poster fades only once frames are really rendering; when it ends, the invitation appears.

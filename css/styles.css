@@ -256,19 +256,40 @@ main { position: relative; z-index: 1; }
 /* auto margins centre the names in the free space and leave the Swipe Down hint at the foot */
 .hero__inner { position: relative; z-index: 1; max-width: var(--col); margin-block: auto; }
 .names { margin: 0; font-weight: 400; display: flex; flex-direction: column; align-items: center; line-height: .98; }
-.names .name { font-size: clamp(4.1rem, 21vw, 7.6rem); color: var(--ink); }
-.names .and  { font-size: clamp(1.7rem, 7.5vw, 2.5rem); color: var(--sage-deep); margin: .12em 0 .02em; font-style: normal; }
+.names .name { font-size: clamp(3.1rem, 14.5vw, 5.4rem); color: var(--ink); }
+.names .and  { font-size: clamp(1.4rem, 6vw, 2rem); color: var(--sage-deep); margin: .08em 0 0; font-style: normal; }
 .lead {
-  margin: 2.1rem auto 0; max-width: 22rem;
-  font-size: .95rem; font-weight: 600;
-  letter-spacing: .24em; text-transform: uppercase; line-height: 2;
+  margin: 1.1rem auto 0; max-width: 22rem;
+  font-size: .84rem; font-weight: 600;
+  letter-spacing: .22em; text-transform: uppercase; line-height: 1.8;
   color: var(--ink-soft);
 }
+.hero__date { margin: .7rem 0 0; font-size: .74rem; font-weight: 600; letter-spacing: .3em; text-indent: .3em; text-transform: uppercase; color: var(--gold); }
+.hero .eyebrow { margin-bottom: 1.1rem; }
+/* Couple portrait — an arched print mounted on ivory paper: thin gold outer border,
+   fine inner line around the photo, very soft shadow. The photo keeps its own 2:3 shape. */
+.portrait { margin: 0 auto 1.3rem; width: min(62vw, clamp(188px, 27svh, 300px)); }
+@supports not (height: 1svh) { .portrait { width: min(62vw, 230px); } }
+.portrait__mat {
+  padding: 9px;
+  background: linear-gradient(160deg, var(--paper), var(--cream));
+  border: 1px solid var(--gold);
+  border-radius: 999px 999px 4px 4px;
+  box-shadow: 0 26px 44px -30px rgba(79, 104, 79, .55), 0 3px 10px -4px rgba(42, 47, 42, .10);
+}
+.portrait__photo {
+  border-radius: 999px 999px 2px 2px;
+  box-shadow: 0 0 0 1px rgba(184, 153, 91, .5);   /* subtle inner border */
+  overflow: hidden; background: var(--mist);
+}
+.portrait__photo img { width: 100%; height: auto; aspect-ratio: 853 / 1280; transform: scale(1.04); transition: transform 2.2s var(--ease); }
+.portrait.in .portrait__photo img { transform: none; }
+
 /* Swipe Down hint — in the hero's flow (below the intro), clear of the phone's bottom safe area */
 .swipe {
   position: relative; z-index: 1;
   display: flex; flex-direction: column; align-items: center; gap: .35rem;
-  margin-top: 1.4rem; padding: .6rem 1rem;
+  margin-top: .9rem; padding: .5rem 1rem;
   color: var(--sage-deep); text-decoration: none;
   -webkit-tap-highlight-color: transparent;
 }
@@ -415,6 +436,6 @@ input[type="text"]:focus-visible, textarea:focus-visible { outline: none; }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   .swipe__arrow, .intro__open, .intro.is-opening .intro__open-label { animation: none; }
-  .reveal, .hero .names .reveal, .divider img, .cd.reveal .cd__item { opacity: 1; transform: none; filter: none; }
-  .intro, .intro__video, .intro__poster, .reveal.in, .divider img, .cd__item, .btn { transition-duration: .01s !important; transition-delay: 0s !important; }
+  .reveal, .hero .names .reveal, .divider img, .cd.reveal .cd__item, .portrait__photo img { opacity: 1; transform: none; filter: none; }
+  .intro, .intro__video, .intro__poster, .reveal.in, .divider img, .cd__item, .btn, .portrait__photo img { transition-duration: .01s !important; transition-delay: 0s !important; }
 }

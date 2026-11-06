@@ -84,15 +84,26 @@
 
       <div class="hero__inner">
         <p class="eyebrow reveal" style="--d:.1s" data-cfg="text.eyebrow"></p>
+
+        <!-- The couple's photograph (assets/photos/couple.jpg — set in js/config.js → photo) -->
+        <figure class="portrait reveal" id="portrait" style="--d:.35s">
+          <div class="portrait__mat">
+            <div class="portrait__photo">
+              <img id="portraitImg" src="assets/photos/couple.jpg" width="853" height="1280" alt="Tharindu and Dinushma, smiling at each other and holding hands" decoding="async">
+            </div>
+          </div>
+        </figure>
+
         <h1 class="names">
-          <span class="script name reveal" style="--d:.45s" data-cfg="couple.first"></span>
-          <span class="script and reveal" style="--d:.8s" data-cfg="couple.and"></span>
-          <span class="script name reveal" style="--d:1.05s" data-cfg="couple.second"></span>
+          <span class="script name reveal" style="--d:.8s" data-cfg="couple.first"></span>
+          <span class="script and reveal" style="--d:1.05s" data-cfg="couple.and"></span>
+          <span class="script name reveal" style="--d:1.25s" data-cfg="couple.second"></span>
         </h1>
-        <p class="lead reveal" style="--d:1.5s" data-cfg="text.invite"></p>
+        <p class="lead reveal" style="--d:1.65s" data-cfg="text.invite"></p>
+        <p class="hero__date reveal" style="--d:1.9s" id="heroDate"></p>
       </div>
 
-      <a class="swipe reveal" style="--d:2.1s" href="#details" aria-label="Swipe down to see the wedding details">
+      <a class="swipe reveal" style="--d:2.3s" href="#details" aria-label="Swipe down to see the wedding details">
         <span class="swipe__text" data-cfg="text.swipe"></span>
         <svg class="swipe__arrow" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 4v14M6 13l6 6 6-6" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </a>
