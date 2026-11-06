@@ -19,6 +19,15 @@ assets/botanical/   divider.svg (sprig divider) · sprig.svg (single eucalyptus 
 vercel.json         caching + security headers
 ```
 
+## Premium refinement (v9)
+Layered on v8 — no content, assets, RSVP flow, `logic.js`, `config.js` or `vercel.json` changed.
+- **Opening is immediate.** The poster paints first; *after* that paint `js/main.js` assigns the opening video's `src` once (`preload="auto"`), so the 2.48 MB file buffers while the guest looks at the poster. It never autoplays. The tap calls `video.play()` directly inside the click — no timer, no delay. If the clip is not buffered yet, the poster stays on screen with a quiet "Opening…" until real frames are painted. Data-Saver mode and reduced motion skip the preload.
+- **Bandwidth.** The background video is no longer requested on the tap; it loads and starts when the invitation is revealed (`bgCtl.start()` in `startReveals`). Music still begins only on the tap.
+- **Typography.** Bodoni Moda (names, big date numeral, signature) · Cormorant Garamond (date, venue, headings, supporting lines, italics) · Jost (labels, buttons, forms). Pinyon Script is removed. Tracking was reduced everywhere; the `--display` token in `css/styles.css` holds the Bodoni stack.
+- **Choreography.** Hero: atmosphere → photograph → Tharindu (from the left) → "and" → Dinushma (from the right) → invitation line → date. Date: vertical wipe. Countdown: numbers in sequence. Venue: fade + settle. RSVP: comes into focus. Closing: names rise, ampersand warms in, a gold line draws. Only opacity / transform / clip-path (plus one small one-off blur on the RSVP form) are animated; all of it is off under *reduce motion*. Starting poses are the `.r-*` classes in `index.html` / `css/styles.css` (always scoped `:not(.in)`).
+- **Photograph.** `assets/photos/couple.jpg` is untouched. A CSS tonal lift (brightness / contrast / a hint of warmth + a soft screen veil) integrates the darker print with the ivory page — see `.portrait__photo` in `css/styles.css`.
+- **RSVP.** Underline grows on focus, labels deepen, choice cards pop when selected, errors ease in, the send icon nudges and the confirmation settles in.
+
 ## Design refinements (v8)
 Everything is layered on the existing design; no content, assets or RSVP flow changed.
 - **Hero:** larger names, soft champagne glow behind the portrait. Shorter screens get a tighter hero so *Swipe down* stays in view.
@@ -44,7 +53,7 @@ The single hero portrait is `assets/photos/couple.jpg` (path in `js/config.js �
 
 ## How the opening works
 1. The poster (`video.poster`) and a **Tap to Open Invitation** button appear straight away.
-2. The video is not loaded or played until the guest taps. It starts from the beginning; the poster fades only once frames are really rendering; when it ends, the invitation appears.
+2. The video is buffered quietly in the background after the poster paints, and is *played* only when the guest taps (never before). It starts from the beginning; the poster fades only once frames are really rendering; when it ends, the invitation appears.
 3. If the video can't load/play (or `video.src` is `""`), the elegant names fallback shows and — because the guest has already tapped — the invitation opens after `video.fallbackAutoOpenMs`.
 4. Guests with "reduce motion" switched on skip the film: the tap opens the invitation directly.
 5. Links that point at a section (e.g. `…/#rsvp`) skip the opening, which is handy for testing.

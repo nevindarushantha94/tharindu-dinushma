@@ -72,23 +72,35 @@
   function startReveals() {
     if (revealsStarted) return;
     revealsStarted = true;
-    if (bgCtl) bgCtl.start();
+    if (bgCtl) bgCtl.start();   // the background video is requested only now, once the opening video is done
     var els = $$(".reveal");
     if (reduceMotion || !("IntersectionObserver" in window)) {
       els.forEach(function (el) { el.classList.add("in"); });
       return;
     }
     // Hero is on screen the moment the intro ends: reveal it directly (staggered by --d).
-    els = els.filter(function (el) {
-      if (el.closest(".hero")) { requestAnimationFrame(function () { el.classList.add("in"); }); return false; }
-      return true;
-    });
+    var heroEls = els.filter(function (el) { return !!el.closest(".hero"); });
+    els = els.filter(function (el) { return !el.closest(".hero"); });
+
     var io = new IntersectionObserver(function (entries) {
       entries.forEach(function (e) {
         if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); }
       });
     }, { threshold: 0.18, rootMargin: "0px 0px -6% 0px" });
     els.forEach(function (el) { io.observe(el); });
+
+    // Let the display fonts settle first so the names never swap typeface mid-reveal
+    // (normally already loaded during the opening, so this adds no wait; capped at 700 ms).
+    var played = false;
+    function playHero() {
+      if (played) return;
+      played = true;
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () { heroEls.forEach(function (el) { el.classList.add("in"); }); });
+      });
+    }
+    if (document.fonts && document.fonts.ready) { document.fonts.ready.then(playHero, playHero); setTimeout(playHero, 700); }
+    else playHero();
   }
 
   /* ------------------------------------------------------------------ *
@@ -112,8 +124,8 @@
     // Missing/broken file: quietly fall back to the plain ivory page.
     v.addEventListener("error", function () { bg.remove(); });
 
-    // The file is only requested once the guest has tapped (so it never competes
-    // with the poster), and only played when the invitation appears.
+    // The file is requested only when the invitation is revealed (start() below), so it
+    // never competes with the opening video. It is not touched by the opening tap.
     var loaded = false, on = false;
     function load() {
       if (loaded) return;
@@ -353,12 +365,66 @@
       timers.skip = setTimeout(function () { intro.classList.add("show-skip"); }, 1200);
     }
 
-    /* ---- Poster: shown immediately; if it can't load, the names show instead ---- */
+    /* ---- Opening video: prepared in the background, played only on the tap ---- */
+    var srcAssigned = false;   // the source is assigned exactly once
+    var broken = false;        // the file failed before the tap -> tap goes straight to the fallback
+    var ready = false;         // enough data is buffered to play without a pause
+
+    video.muted = true;
+    video.defaultMuted = true;
+    video.playsInline = true;
+    video.setAttribute("playsinline", "");
+    video.setAttribute("webkit-playsinline", "");
+
+    function prepareVideo() {
+      if (srcAssigned || !cfgV.src || reduceMotion) return;     // reduced motion never plays the film
+      var conn = navigator.connection;
+      if (conn && conn.saveData) return;                         // respect Data Saver: load on the tap instead
+      srcAssigned = true;
+      video.preload = "auto";
+      video.src = versioned(cfgV.src);                           // assigning src starts the download; no autoplay
+    }
+    function afterFirstPaint(fn) {
+      requestAnimationFrame(function () { setTimeout(fn, 0); });
+    }
+
+    video.addEventListener("loadeddata", function () { ready = true; });
+    video.addEventListener("canplay", function () { ready = true; });
+    video.addEventListener("playing", function onPlaying() {
+      video.removeEventListener("playing", onPlaying);
+      // Wait for a real painted frame where the browser can tell us (so the poster
+      // never fades onto a blank video); otherwise "playing" is good enough.
+      if (video.requestVideoFrameCallback) {
+        var done = false;
+        var go = function () { if (!done) { done = true; revealVideo(); } };
+        video.requestVideoFrameCallback(go);
+        setTimeout(go, 600);
+      } else {
+        revealVideo();
+      }
+    });
+    video.addEventListener("playing", function () { clearTimeout(timers.wait); });
+    video.addEventListener("ended", function () { if (opened) finish(); });
+    video.addEventListener("error", function () {
+      if (!opened) { broken = true; return; }
+      if (started) finish(); else fallback();
+    });
+    video.addEventListener("waiting", function () {
+      if (started) { clearTimeout(timers.wait); timers.wait = setTimeout(finish, 7000); } // long stall mid-video
+    });
+
+    /* ---- Poster: shown immediately; if it can't load, the names show instead.
+       The video only starts downloading after the poster has painted. ---- */
+    var scheduled = false;
+    function schedulePrepare() { if (scheduled) return; scheduled = true; afterFirstPaint(prepareVideo); }
     if (cfgV.poster) {
-      poster.addEventListener("error", function () { intro.classList.add("no-poster"); });
+      poster.addEventListener("load", schedulePrepare);
+      poster.addEventListener("error", function () { intro.classList.add("no-poster"); schedulePrepare(); });
       poster.src = versioned(cfgV.poster);
+      if (poster.complete) schedulePrepare();
     } else {
       intro.classList.add("no-poster");
+      schedulePrepare();
     }
 
     /* ---- The tap ---- */
@@ -368,49 +434,39 @@
       openBtn.disabled = true;
       openBtn.setAttribute("aria-busy", "true");
       intro.classList.add("is-opening");
-      label.textContent = "Opening\u2026";
-      if (bgCtl) bgCtl.load();
-      if (musicCtl) musicCtl.start();   // music begins with the tap (gentle fade-in), independent of the video's own sound
 
       // No video configured, or the guest prefers reduced motion: skip the film.
-      if (!cfgV.src || reduceMotion) { cfgV.src ? finish() : fallback(); return; }
+      if (!cfgV.src || reduceMotion) {
+        label.textContent = "Opening\u2026";
+        if (musicCtl) musicCtl.start();
+        cfgV.src ? finish() : fallback();
+        return;
+      }
+      if (broken) {
+        label.textContent = "Opening\u2026";
+        if (musicCtl) musicCtl.start();
+        fallback();
+        return;
+      }
 
-      video.muted = true;
-      video.defaultMuted = true;
-      video.playsInline = true;
-      video.setAttribute("playsinline", "");
-      video.setAttribute("webkit-playsinline", "");
-
-      video.addEventListener("playing", function onPlaying() {
-        video.removeEventListener("playing", onPlaying);
-        // Wait for a real painted frame where the browser can tell us (so the poster
-        // never fades onto a blank video); otherwise "playing" is good enough.
-        if (video.requestVideoFrameCallback) {
-          var done = false;
-          var go = function () { if (!done) { done = true; revealVideo(); } };
-          video.requestVideoFrameCallback(go);
-          setTimeout(go, 600);
-        } else {
-          revealVideo();
-        }
-      });
-      video.addEventListener("ended", finish);
-      video.addEventListener("error", function () { if (started) finish(); else fallback(); });
-      video.addEventListener("waiting", function () {
-        if (started) { clearTimeout(timers.wait); timers.wait = setTimeout(finish, 7000); } // long stall mid-video
-      });
-      video.addEventListener("playing", function () { clearTimeout(timers.wait); });
-
-      // Load + play inside the tap itself — this is what lets iOS/Android start it.
-      video.currentTime = 0;
-      video.preload = "auto";
-      video.src = versioned(cfgV.src);
+      // Play inside the tap itself (this is what lets iOS/Android start it) — no delay, no timers.
+      prepareVideo();               // no-op when the source was already assigned during preloading
+      if (!srcAssigned) {           // Data Saver path: assign now, still inside the tap
+        srcAssigned = true;
+        video.preload = "auto";
+        video.src = versioned(cfgV.src);
+      }
+      if (video.currentTime > 0) video.currentTime = 0;
       var p = video.play();
       if (p && p.catch) {
         p.catch(function () { if (!started) fallback(); });
       }
-      // Never leave the guest staring at "Opening…": give up on a video that never starts.
-      timers.stall = setTimeout(function () { if (!started) fallback(); }, 8000);
+      // Only if the clip is still buffering do we show the quiet "Opening…" state (poster stays visible).
+      if (!ready) label.textContent = "Opening\u2026";
+      if (musicCtl) musicCtl.start();   // music begins with the tap (gentle fade-in)
+
+      // Never leave the guest staring at a poster forever: give up on a video that never starts.
+      timers.stall = setTimeout(function () { if (!started) fallback(); }, 9000);
     });
 
     // Skip is offered only once the film is playing; Escape works the same way.
@@ -555,6 +611,11 @@
       var warm = $("#rsvpWarm");
       if (warm) warm.textContent = (att === "yes" ? cfg.text.rsvpWarmYes : cfg.text.rsvpWarmNo) || "";
       reopen.href = url;
+      var sendBtn = form.querySelector('button[type="submit"]');
+      if (sendBtn && !reduceMotion) {
+        sendBtn.classList.remove("is-sent"); void sendBtn.offsetWidth; sendBtn.classList.add("is-sent");
+        setTimeout(function () { sendBtn.classList.remove("is-sent"); }, 1400);
+      }
       ready.hidden = false;
       ready.style.animation = "none"; void ready.offsetWidth; ready.style.animation = "";   // replay the soft entrance on every send
       if (!reduceMotion && ready.scrollIntoView) {
@@ -579,7 +640,7 @@
       card.style.setProperty("--d", (0.12 + i * 0.14) + "s");
 
       var name = document.createElement("p");
-      name.className = "script contact__name";
+      name.className = "contact__name";
       name.textContent = c.name;
       var role = document.createElement("p");
       role.className = "contact__role";

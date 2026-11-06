@@ -27,7 +27,7 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Jost:wght@400;500&family=Pinyon+Script&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,500;0,6..96,600;1,6..96,500&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Jost:wght@400;500&display=swap" rel="stylesheet">
   <!-- Opening poster: fetched early so the envelope is on screen at first paint.
        Keep the ?v= in step with video.version in js/config.js. -->
   <link rel="preload" as="image" href="assets/video/poster.jpg?v=2" fetchpriority="high">
@@ -51,8 +51,9 @@
 
   <!-- ================= OPENING (poster + tap to open) =================
        Poster and video files are set in js/config.js → video.
-       The <video> has NO src and NO autoplay: js/main.js only loads and
-       plays it after the guest taps "Tap to Open Invitation". -->
+       The <video> has NO autoplay. js/main.js assigns its src ONCE, after the
+       first paint, so it can buffer while the guest looks at the poster; play()
+       is only ever called inside the guest's tap on "Tap to Open Invitation". -->
   <div id="intro" class="intro" role="dialog" aria-modal="true" aria-label="Wedding invitation — tap to open">
     <div class="intro__stage">
       <video id="introVideo" class="intro__video" muted playsinline preload="none"
@@ -64,9 +65,9 @@
       <!-- Shown only when the poster is missing, or the video cannot play -->
       <div class="intro__fallback" aria-hidden="true">
         <div class="intro__fallback-names">
-          <span class="script" data-cfg="couple.first"></span>
-          <span class="script and" data-cfg="couple.and"></span>
-          <span class="script" data-cfg="couple.second"></span>
+          <span class="display" data-cfg="couple.first"></span>
+          <span class="display and" data-cfg="couple.and"></span>
+          <span class="display" data-cfg="couple.second"></span>
         </div>
       </div>
 
@@ -86,10 +87,10 @@
     <section class="hero" id="top">
 
       <div class="hero__inner">
-        <p class="eyebrow reveal" style="--d:.1s" data-cfg="text.eyebrow"></p>
+        <p class="eyebrow reveal r-fade" style="--d:.15s" data-cfg="text.eyebrow"></p>
 
         <!-- The couple's photograph (assets/photos/couple.jpg — set in js/config.js → photo) -->
-        <figure class="portrait reveal" id="portrait" style="--d:.35s">
+        <figure class="portrait reveal r-photo" id="portrait" style="--d:.3s">
           <div class="portrait__frame">
             <div class="portrait__mat">
               <div class="portrait__photo">
@@ -100,15 +101,15 @@
         </figure>
 
         <h1 class="names">
-          <span class="script name reveal" style="--d:.8s" data-cfg="couple.first"></span>
-          <span class="script and reveal" style="--d:1.05s" data-cfg="couple.and"></span>
-          <span class="script name reveal" style="--d:1.25s" data-cfg="couple.second"></span>
+          <span class="display name reveal r-name" style="--d:.7s" data-cfg="couple.first"></span>
+          <span class="display and reveal r-amp" style="--d:1s" data-cfg="couple.and"></span>
+          <span class="display name reveal r-name" style="--d:1.2s" data-cfg="couple.second"></span>
         </h1>
-        <p class="lead reveal" style="--d:1.65s" data-cfg="text.invite"></p>
-        <p class="hero__date reveal" style="--d:1.9s" id="heroDate"></p>
+        <p class="lead reveal r-fade" style="--d:1.6s" data-cfg="text.invite"></p>
+        <p class="hero__date reveal r-fade" style="--d:1.85s" id="heroDate"></p>
       </div>
 
-      <a class="swipe reveal" style="--d:2.3s" href="#details" aria-label="Swipe down to see the wedding details">
+      <a class="swipe reveal r-fade" style="--d:2.2s" href="#details" aria-label="Swipe down to see the wedding details">
         <span class="swipe__text" data-cfg="text.swipe"></span>
         <svg class="swipe__arrow" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 4v14M6 13l6 6 6-6" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </a>
@@ -121,20 +122,20 @@
 
       <p class="eyebrow reveal" data-cfg="text.detailsEyebrow"></p>
 
-      <div class="date reveal" style="--d:.15s">
+      <div class="date reveal r-mask" style="--d:.15s">
         <span class="date__side"><span id="dWeekday"></span></span>
         <span class="date__day"><span id="dDay"></span><sup id="dSuffix"></sup></span>
         <span class="date__side"><span id="dMonth"></span></span>
       </div>
-      <p class="year reveal" style="--d:.25s" id="dYear"></p>
+      <p class="year reveal r-fade" style="--d:.4s" id="dYear"></p>
 
-      <div class="rule reveal" style="--d:.35s" aria-hidden="true"><i></i></div>
+      <div class="rule reveal r-rule" style="--d:.5s" aria-hidden="true"><i></i></div>
       <p class="time reveal" style="--d:.42s" data-cfg="event.timeText"></p>
 
       <div class="divider reveal" style="--d:.5s" aria-hidden="true"><img src="assets/botanical/divider.svg" alt="" loading="lazy"></div>
 
       <svg class="pin reveal" style="--d:.58s" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12Z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><circle cx="12" cy="10" r="2.4" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>
-      <h2 class="venue reveal" style="--d:.64s" data-cfg="venue.name"></h2>
+      <h2 class="venue reveal r-venue" style="--d:.64s" data-cfg="venue.name"></h2>
       <p class="area reveal" style="--d:.7s" data-cfg="venue.area"></p>
 
       <a id="mapLink" class="maplink reveal" style="--d:.8s" target="_blank" rel="noopener noreferrer">
@@ -146,7 +147,7 @@
     <!-- 3 · Countdown -->
     <section class="section countdown" id="countdown-section">
       <p class="eyebrow reveal" data-cfg="text.countdownEyebrow"></p>
-      <h2 class="script title reveal" style="--d:.12s" data-cfg="text.countdownTitle"></h2>
+      <h2 class="title reveal r-fade" style="--d:.12s" data-cfg="text.countdownTitle"></h2>
 
       <div id="countdown" class="cd reveal" style="--d:.25s" role="timer" aria-live="off">
         <div class="cd__item"><span class="cd__num" data-unit="days">00</span><span class="cd__label">Days</span></div>
@@ -161,10 +162,10 @@
     <section class="section rsvp" id="rsvp">
 
       <p class="eyebrow reveal" data-cfg="text.rsvpEyebrow"></p>
-      <h2 class="script title reveal" style="--d:.12s" data-cfg="text.rsvpTitle"></h2>
+      <h2 class="title reveal r-fade" style="--d:.12s" data-cfg="text.rsvpTitle"></h2>
       <p class="deadline reveal" style="--d:.2s" data-cfg="rsvp.deadlineText"></p>
 
-      <form id="rsvpForm" class="form reveal" style="--d:.3s" novalidate autocomplete="on">
+      <form id="rsvpForm" class="form reveal r-focus" style="--d:.3s" novalidate autocomplete="on">
         <div class="field">
           <label for="guestName">Your name</label>
           <input id="guestName" name="name" type="text" aria-describedby="rsvpStatus" maxlength="60" autocomplete="name" placeholder="Full name" required>
@@ -218,9 +219,9 @@
     <!-- 5 · Closing message -->
     <section class="section final" id="thanks">
       <div class="divider reveal" aria-hidden="true"><img src="assets/botanical/divider.svg" alt="" loading="lazy"></div>
-      <p class="thanks reveal" style="--d:.15s" data-cfg="text.thanks"></p>
-      <p class="withlove reveal" style="--d:.35s" data-cfg="text.withLove"></p>
-      <p class="script signoff reveal" style="--d:.55s"><span data-cfg="couple.first"></span> &amp; <span data-cfg="couple.second"></span></p>
+      <p class="thanks reveal r-fade" style="--d:.15s" data-cfg="text.thanks"></p>
+      <p class="withlove reveal r-fade" style="--d:.35s" data-cfg="text.withLove"></p>
+      <p class="display signoff reveal r-sign" style="--d:.55s"><span class="signoff__a" data-cfg="couple.first"></span><span class="signoff__amp"> &amp; </span><span class="signoff__b" data-cfg="couple.second"></span></p>
       <img class="ornament reveal" data-parallax="0.04" style="--d:.75s" src="assets/botanical/sprig.svg" alt="" aria-hidden="true" loading="lazy" decoding="async" width="90" height="170">
 
       <p id="credit" class="credit"></p>

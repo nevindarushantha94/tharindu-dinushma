@@ -16,7 +16,7 @@
   --gold: #b8995b;
 
   --serif: "Cormorant Garamond", "Cormorant", Georgia, "Times New Roman", serif;
-  --script: "Pinyon Script", "Great Vibes", "Snell Roundhand", "Apple Chancery", cursive;
+  --display: "Bodoni Moda", "Bodoni 72", "Bodoni MT", Didot, "Playfair Display", Georgia, serif;   /* names & key display moments */
   --sans: "Jost", "Helvetica Neue", Helvetica, Arial, sans-serif;   /* supporting text, labels, forms */
   --gold-soft: #d8c79a;   /* champagne */
 
@@ -48,12 +48,12 @@ body {
 img { display: block; max-width: 100%; }
 [hidden] { display: none !important; }
 
-.script { font-family: var(--script); font-weight: 400; letter-spacing: 0; }
+.display { font-family: var(--display); font-weight: 500; letter-spacing: .005em; font-optical-sizing: auto; }
 .eyebrow {
   margin: 0 0 1.4rem;
-  font: 500 .74rem/1.7 var(--sans);
-  letter-spacing: .32em;
-  text-indent: .32em;
+  font: 500 .76rem/1.7 var(--sans);
+  letter-spacing: .24em;
+  text-indent: .24em;
   text-transform: uppercase;
   color: var(--sage-deep);
 }
@@ -117,12 +117,12 @@ html:not(.intro-active) .intro:not(.is-leaving) { display: none; }
 .intro__fallback-names {
   position: relative;
   display: flex; flex-direction: column; align-items: center;
-  font-size: clamp(3.4rem, 17vw, 5.6rem);
-  line-height: 1.02;
+  font-size: clamp(3rem, 14vw, 5rem);
+  line-height: 1.04;
   color: var(--ink);
   animation: riseIn 1.6s .4s var(--ease) both;
 }
-.intro__fallback-names .and { font-size: .46em; color: var(--sage-deep); margin: .1em 0; }
+.intro__fallback-names .and { font-size: .42em; font-style: italic; color: var(--sage-deep); margin: .12em 0; }
 
 /* "Tap to Open Invitation": visible from the first paint — never waits on a video event */
 .intro__open {
@@ -210,29 +210,72 @@ main { position: relative; z-index: 1; }
 }
 
 /* --------------------------------------------------------------------------
-   Reveal animation
+   Reveal choreography — one easing, but a different movement for each kind of
+   element. Only opacity / transform / clip-path are animated (compositor-friendly).
+   Base: soft rise. Variants (r-*) override the starting pose only; the end state is
+   always "in place". Timing comes from --d on each element.
    -------------------------------------------------------------------------- */
-.reveal { opacity: 0; transform: translateY(16px); }
+.reveal { opacity: 0; transform: translateY(14px); }
 .reveal.in {
   opacity: 1; transform: none;
   transition: opacity var(--dur) var(--ease) var(--d, 0s), transform var(--dur) var(--ease) var(--d, 0s);
 }
-.hero .reveal.in { transition-duration: 1.4s; }
+
+/* quiet fade with a tiny lift (supporting lines) */
+.reveal.r-fade:not(.in) { transform: translateY(8px); }
+.hero .reveal.in { transition-duration: 1.2s; }
+
+/* Hero · photograph: settles into the frame — small scale, gentle rise, long soft fade */
+.reveal.r-photo:not(.in) { transform: translateY(16px) scale(.965); transform-origin: 50% 60%; }
+.reveal.r-photo.in { transition-duration: 1.7s, 1.9s; }
+
+/* Hero · names: the two names arrive from opposite sides and meet at the ampersand */
+.reveal.r-name:first-child:not(.in) { transform: translate3d(-22px, 8px, 0); }
+.reveal.r-name:last-child:not(.in) { transform: translate3d(22px, 8px, 0); }
+.reveal.r-name.in { transition-duration: 1.35s; }
+.reveal.r-amp:not(.in) { transform: scale(.6); }
+.reveal.r-amp.in { transition-duration: 1.1s; }
+
+/* Date · an elegant vertical reveal, top to bottom. The wipe runs on the children so the observed
+   element keeps its full size (an element clipped to nothing is never seen as "visible"). */
+.reveal.r-mask:not(.in) { transform: translateY(-4px); }
+.reveal.r-mask > * { clip-path: inset(0 -4% 100% -4%); transform: translateY(-8px); }
+.reveal.r-mask.in > * { clip-path: inset(-10% -4% -10% -4%); transform: none; transition: clip-path 1.3s cubic-bezier(.65, .05, .2, 1) calc(var(--d, 0s) + var(--k, 0) * .12s), transform 1.3s var(--ease) calc(var(--d, 0s) + var(--k, 0) * .12s); }
+.date > :nth-child(2) { --k: 1; } .date > :nth-child(3) { --k: 2; }
+.reveal.r-rule:not(.in) { transform: scaleX(0); }
+.reveal.r-rule.in { transition-duration: 1.1s; }
+
+/* Venue · fade with a refined, slightly scaled settle */
+.reveal.r-venue:not(.in) { transform: translateY(12px) scale(.985); }
+.pin.reveal:not(.in) { transform: translateY(-12px); }
+.pin.reveal.in { transition-duration: .9s; }
+
+/* RSVP · the form comes into focus: a single, small blur-to-sharp (one element, one-off) */
+.reveal.r-focus:not(.in) { transform: translateY(10px) scale(.992); filter: blur(5px); }
+.reveal.r-focus.in { filter: blur(0); transition: opacity 1.1s var(--ease) var(--d, 0s), transform 1.1s var(--ease) var(--d, 0s), filter 1.1s var(--ease) var(--d, 0s); }
+
+/* Closing · signature: each name rises on its own, the ampersand glows in last (see .signoff) */
+.reveal.r-sign { transform: none; }
 
 /* Images settle: a barely-there scale + fade that finishes a beat after the text around them */
 .divider img { opacity: 0; transform: scale(.96); transition: opacity var(--dur) var(--ease), transform 1.4s var(--ease); }
 .divider.in img { opacity: 1; transform: none; transition-delay: calc(var(--d, 0s) + .1s); }
 
 /* Countdown numbers arrive one after another */
-.cd.reveal .cd__item { opacity: 0; transform: translateY(14px); }
+.cd.reveal .cd__item { opacity: 0; transform: translateY(12px) scale(.94); }
 .cd.reveal.in .cd__item {
   opacity: 1; transform: none;
-  transition: opacity var(--dur) var(--ease) calc(var(--d, 0s) + var(--i, 0) * .1s), transform var(--dur) var(--ease) calc(var(--d, 0s) + var(--i, 0) * .1s);
+  transition: opacity .9s var(--ease) calc(var(--d, 0s) + var(--i, 0) * .14s), transform 1s var(--ease) calc(var(--d, 0s) + var(--i, 0) * .14s);
 }
 .cd__item:nth-child(2) { --i: 1; } .cd__item:nth-child(3) { --i: 2; } .cd__item:nth-child(4) { --i: 3; }
 
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes riseIn { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+@keyframes settleIn { from { opacity: 0; transform: translateY(10px) scale(.985); } to { opacity: 1; transform: none; } }
+@keyframes iconPop { 0% { opacity: 0; transform: scale(.5); } 60% { opacity: 1; transform: scale(1.12); } 100% { transform: scale(1); } }
+@keyframes choicePop { 0% { transform: scale(.985); } 55% { transform: scale(1.012); } 100% { transform: scale(1); } }
+@keyframes sendNudge { 0% { transform: none; } 40% { transform: translate(3px, -3px); } 100% { transform: none; } }
+@keyframes errorIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
 @keyframes openIn { from { opacity: 0; transform: translate(-50%, 14px); } to { opacity: 1; transform: translate(-50%, 0); } }
 @keyframes openPulse { 0%, 100% { box-shadow: 0 14px 34px -18px rgba(79, 104, 79, .55), 0 0 0 0 rgba(125, 152, 120, .0); } 50% { box-shadow: 0 14px 34px -18px rgba(79, 104, 79, .55), 0 0 0 9px rgba(125, 152, 120, .14); } }
 @keyframes softBlink { 0%, 100% { opacity: 1; } 50% { opacity: .55; } }
@@ -243,7 +286,7 @@ main { position: relative; z-index: 1; }
    -------------------------------------------------------------------------- */
 .section {
   position: relative;
-  padding: clamp(5rem, 14vw, 8.5rem) var(--gutter);
+  padding: clamp(3.75rem, 11vw, 6.5rem) var(--gutter);
   text-align: center;
   overflow: hidden;
 }
@@ -261,17 +304,24 @@ main { position: relative; z-index: 1; }
 }
 /* auto margins centre the names in the free space and leave the Swipe Down hint at the foot */
 .hero__inner { position: relative; z-index: 1; max-width: var(--col); margin-block: auto; }
-.names { margin: 0; font-weight: 400; display: flex; flex-direction: column; align-items: center; line-height: .98; }
-.names .name { font-size: clamp(3.1rem, 14.5vw, 5.4rem); color: var(--ink); }
-.names .and  { font-size: clamp(1.4rem, 6vw, 2rem); color: var(--sage-deep); margin: .08em 0 0; font-style: normal; }
+/* soft atmosphere: a warm champagne-ivory light that appears first, before anything else */
+.hero::before {
+  content: ""; position: absolute; z-index: 0; inset: 0; pointer-events: none;
+  background: radial-gradient(ellipse 80% 55% at 50% 42%, rgba(248, 236, 205, .75), rgba(250, 247, 239, 0) 72%);
+  opacity: 0; transition: opacity 1.8s var(--ease);
+}
+html:not(.intro-active) .hero::before { opacity: 1; }
+.names { margin: 0; font-weight: 500; display: flex; flex-direction: column; align-items: center; line-height: 1.04; }
+.names .name { font-size: clamp(2.7rem, 14.6vw, 5.2rem); color: var(--ink); letter-spacing: .012em; }
+.names .and  { font-size: clamp(1.25rem, 5.4vw, 1.8rem); font-weight: 500; font-style: italic; color: var(--gold); margin: .12em 0 .1em; letter-spacing: .02em; }
 .lead {
-  margin: 1.1rem auto 0; max-width: 20rem;
-  font: 400 .76rem/1.9 var(--sans);
-  letter-spacing: .24em; text-indent: .24em; text-transform: uppercase;
+  margin: 1.2rem auto 0; max-width: 21rem;
+  font: italic 500 clamp(1.15rem, 4.8vw, 1.35rem)/1.45 var(--serif);
+  letter-spacing: .01em;
   color: var(--ink-soft);
   text-wrap: balance;
 }
-.hero__date { margin: .75rem 0 0; font: 500 .72rem/1.6 var(--sans); letter-spacing: .26em; text-indent: .26em; text-transform: uppercase; color: #8f7440; }
+.hero__date { margin: .9rem 0 0; font: 600 clamp(.92rem, 3.7vw, 1.08rem)/1.5 var(--serif); letter-spacing: .16em; text-indent: .16em; text-transform: uppercase; color: #8a6e37; }
 .hero .eyebrow { margin-bottom: 1.1rem; }
 /* Couple portrait — a printed photograph: thin champagne-gold frame, ivory mat, fine hairline
    around the print, soft natural shadow. The whole photo is shown at its own 2:3 shape. */
@@ -293,8 +343,21 @@ main { position: relative; z-index: 1; }
   overflow: hidden; background: var(--mist);
   box-shadow: 0 0 0 1px rgba(184, 153, 91, .55);   /* hairline round the print */
 }
-.portrait__photo img { width: 100%; height: auto; aspect-ratio: 853 / 1280; transform: scale(1.025); opacity: .0; transition: transform 2s var(--ease), opacity 1.4s var(--ease) .2s; }
-.portrait.in .portrait__photo img { transform: none; opacity: 1; }
+.portrait__photo { position: relative; }
+/* Tonal integration — presentation only; the file itself is untouched. A gentle lift in brightness,
+   a touch less contrast and a hint of warmth so the darker print sits comfortably on ivory. */
+.portrait__photo img {
+  width: 100%; height: auto; aspect-ratio: 853 / 1280;
+  filter: brightness(1.13) contrast(.97) saturate(1.03) sepia(.05);
+  transform: scale(1.04); transition: transform 2.4s var(--ease) .2s;
+}
+.portrait.in .portrait__photo img { transform: none; }
+/* soft warm veil: lifts the deepest shadows a little (like a matte print) without touching skin tones */
+.portrait__photo::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(180deg, rgba(255, 240, 214, .07), rgba(255, 236, 205, .13));
+  mix-blend-mode: screen;
+}
 
 /* Swipe Down hint — in the hero's flow (below the intro), clear of the phone's bottom safe area */
 .swipe {
@@ -309,7 +372,7 @@ main { position: relative; z-index: 1; }
 .swipe.reveal.in { transition-duration: 1.4s; }
 
 /* Details */
-.details { padding-top: clamp(5.5rem, 15vw, 8.5rem); }
+.details { padding-top: clamp(4.5rem, 12vw, 7rem); }
 .sprig { position: absolute !important; z-index: 0 !important; height: auto; pointer-events: none; opacity: .5; width: clamp(46px, 13vw, 66px); }
 .sprig--l { left: clamp(-.6rem, 1vw, 1.2rem); top: 3rem; transform: rotate(-14deg); transform-origin: bottom center; }
 .sprig--r { right: clamp(-.6rem, 1vw, 1.2rem); top: 3rem; transform: scaleX(-1) rotate(-14deg); transform-origin: bottom center; }
@@ -323,8 +386,8 @@ main { position: relative; z-index: 1; }
 .date__side span {
   display: block; padding: .6rem 0;
   border-top: 1px solid var(--gold); border-bottom: 1px solid var(--gold);
-  font-size: clamp(.9rem, 3.7vw, 1.12rem); font-weight: 600;
-  letter-spacing: .2em; text-indent: .2em; text-transform: uppercase; color: var(--ink);
+  font-size: clamp(.9rem, 3.7vw, 1.1rem); font-weight: 600;
+  letter-spacing: .16em; text-indent: .16em; text-transform: uppercase; color: var(--ink);
 }
 @media (max-width: 374px) {
   .date { gap: .55rem; }
@@ -333,19 +396,19 @@ main { position: relative; z-index: 1; }
   .time { letter-spacing: .14em; text-indent: .14em; font-size: 1.02rem; }
   .venue { letter-spacing: .08em; text-indent: .08em; }
 }
-.date__day { font-size: clamp(4.1rem, 19vw, 6.2rem); line-height: .95; font-weight: 500; color: var(--ink); }
+.date__day { font-family: var(--display); font-size: clamp(3.8rem, 17.5vw, 5.8rem); line-height: 1; font-weight: 500; color: var(--ink); letter-spacing: .01em; }
 .date__day sup { font: 500 .24em/1 var(--sans); letter-spacing: .1em; text-transform: uppercase; vertical-align: top; position: relative; top: .7em; margin-left: .12em; color: #8f7440; }
-.year { margin: 1.1rem 0 0; font-size: 1.5rem; font-weight: 500; letter-spacing: .3em; text-indent: .3em; color: var(--ink-soft); }
-.rule { margin: 1.7rem auto 1.5rem; width: 70px; height: 9px; position: relative; }
+.year { margin: 1.1rem 0 0; font-size: 1.45rem; font-weight: 500; letter-spacing: .24em; text-indent: .24em; color: var(--ink-soft); }
+.rule { margin: 1.6rem auto 1.4rem; width: 70px; height: 9px; position: relative; transform-origin: 50% 50%; }
 .rule::before, .rule::after { content: ""; position: absolute; top: 4px; height: 1px; width: 26px; background: linear-gradient(90deg, transparent, var(--gold)); }
 .rule::before { left: 0; } .rule::after { right: 0; transform: scaleX(-1); }
 .rule i { position: absolute; left: 50%; top: 1px; width: 7px; height: 7px; margin-left: -3.5px; background: var(--gold); transform: rotate(45deg); }
-.time { margin: 0; font-size: 1.12rem; font-weight: 600; letter-spacing: .2em; text-indent: .2em; text-transform: uppercase; color: var(--ink); }
+.time { margin: 0; font-size: 1.1rem; font-weight: 600; letter-spacing: .15em; text-indent: .15em; text-transform: uppercase; color: var(--ink); }
 .divider { margin: 2.6rem auto; width: 150px; opacity: .95; }
 .details .divider { margin: 2.4rem auto 1.6rem; }
 .pin { display: block; margin: 0 auto .9rem; color: var(--gold); }
-.venue { margin: 0; font-size: clamp(1.75rem, 7.6vw, 2.3rem); font-weight: 600; letter-spacing: .12em; text-indent: .12em; text-transform: uppercase; line-height: 1.2; }
-.area { margin: .6rem 0 1.1rem; font: 400 .8rem/1.6 var(--sans); letter-spacing: .3em; text-indent: .3em; text-transform: uppercase; color: var(--ink-soft); }
+.venue { margin: 0; font-size: clamp(1.7rem, 7.4vw, 2.25rem); font-weight: 600; letter-spacing: .09em; text-indent: .09em; text-transform: uppercase; line-height: 1.2; }
+.area { margin: .6rem 0 1.1rem; font: 400 .82rem/1.6 var(--sans); letter-spacing: .22em; text-indent: .22em; text-transform: uppercase; color: var(--ink-soft); }
 /* small elegant text link — generous tap area, thin gold underline */
 .maplink {
   display: inline-flex; align-items: center; gap: .45rem;
@@ -362,7 +425,7 @@ main { position: relative; z-index: 1; }
 
 /* Countdown */
 .countdown { background: linear-gradient(transparent, rgba(250, 247, 239, .32) 35%, rgba(250, 247, 239, .32) 65%, transparent); }
-.title { margin: 0 0 2.4rem; font-family: var(--serif); font-style: italic; font-size: clamp(2.1rem, 9.4vw, 3.1rem); line-height: 1.15; color: var(--sage-deep); font-weight: 500; letter-spacing: .01em; }
+.title { margin: 0 0 2.2rem; font-family: var(--serif); font-style: italic; font-size: clamp(2rem, 8.8vw, 2.9rem); line-height: 1.18; color: var(--sage-deep); font-weight: 500; letter-spacing: .005em; text-wrap: balance; }
 .cd { display: grid; grid-template-columns: repeat(4, 1fr); max-width: 32rem; margin: 0 auto; }
 .cd__item { padding: .4rem .2rem; position: relative; }
 .cd__item + .cd__item::before {
@@ -373,7 +436,7 @@ main { position: relative; z-index: 1; }
   display: block; font-size: clamp(2.3rem, 11.5vw, 3.7rem); line-height: 1.1; font-weight: 500;
   color: var(--ink); font-variant-numeric: tabular-nums lining-nums;
 }
-.cd__label { display: block; margin-top: .4rem; font: 500 .64rem/1.4 var(--sans); letter-spacing: .22em; text-indent: .22em; text-transform: uppercase; color: var(--sage-deep); }
+.cd__label { display: block; margin-top: .4rem; font: 500 .66rem/1.4 var(--sans); letter-spacing: .18em; text-indent: .18em; text-transform: uppercase; color: var(--sage-deep); }
 .cd__done { margin: 1rem auto 0; max-width: 22rem; font-style: italic; font-size: 1.3rem; color: var(--sage-deep); }
 .cd.is-done { opacity: .55; }
 
@@ -383,9 +446,9 @@ main { position: relative; z-index: 1; }
   position: relative; z-index: 1;
   max-width: 27rem; margin: 0 auto; text-align: left;
   padding: clamp(1.4rem, 5.5vw, 2rem);
-  background: rgba(253, 251, 246, .9);
-  border: 1px solid var(--mist);
-  box-shadow: 0 30px 60px -40px rgba(79, 104, 79, .45);
+  background: rgba(253, 251, 246, .72);
+  border: 1px solid rgba(184, 153, 91, .26);
+  box-shadow: 0 34px 60px -46px rgba(79, 104, 79, .38);
 }
 .field { margin: 0 0 1.2rem; padding: 0; border: 0; min-width: 0; }
 .field > label, .field > legend {
@@ -396,13 +459,16 @@ main { position: relative; z-index: 1; }
 input[type="text"], textarea {
   width: 100%; padding: .55rem 0;
   font: 400 1.05rem/1.5 var(--sans); color: var(--ink);
-  background: transparent; border: 0; border-bottom: 1px solid var(--euca); border-radius: 0;
-  transition: border-color var(--dur-fast) var(--ease);
+  background: linear-gradient(var(--sage-deep), var(--sage-deep)) 50% 100% / 0 2px no-repeat;
+  border: 0; border-bottom: 1px solid var(--euca); border-radius: 0;
+  transition: border-color var(--dur-fast) var(--ease), background-size .5s var(--ease);
   -webkit-appearance: none; appearance: none;
 }
 textarea { display: block; resize: vertical; min-height: 3.6rem; font-size: 1rem; max-height: 14rem; line-height: 1.55; }
 input[type="text"]::placeholder, textarea::placeholder { color: #8c978a; }
-input[type="text"]:focus, textarea:focus { outline: none; border-bottom-color: var(--sage-deep); }
+input[type="text"]:focus, textarea:focus { outline: none; border-bottom-color: var(--sage-deep); background-size: 100% 2px; }
+.field > label, .field > legend { transition: color var(--dur-fast) var(--ease); }
+.field:focus-within > label { color: var(--ink); }
 input[type="text"]:focus-visible, textarea:focus-visible { outline: none; }
 
 .choices { display: flex; flex-wrap: wrap; gap: .5rem; }
@@ -419,12 +485,14 @@ input[type="text"]:focus-visible, textarea:focus-visible { outline: none; }
   transition: background .35s var(--ease), color .35s var(--ease), border-color .35s var(--ease);
 }
 .choice--pill span { padding: .55rem .8rem; border-radius: 18px; font-size: .92rem; line-height: 1.25; }
-.choice input:checked + span { background: var(--sage-deep); border-color: var(--sage-deep); color: var(--ivory); }
+.choice input:checked + span { background: var(--sage-deep); border-color: var(--sage-deep); color: var(--ivory); animation: choicePop .45s var(--ease); }
+.choice:active span { transform: scale(.985); }
+.choice span { transition: background .35s var(--ease), color .35s var(--ease), border-color .35s var(--ease), transform .2s var(--ease); }
 .choice input:focus-visible + span { outline: 2px solid var(--gold); outline-offset: 2px; }
 
 .rsvp__status { min-height: 1.2em; margin: .7rem 0 0; text-align: center; font: 400 .92rem/1.5 var(--sans); }
 .rsvp__status:empty { min-height: 0; margin: 0; }
-.rsvp__status.is-error { color: #9a4a3a; }
+.rsvp__status.is-error { color: #9a4a3a; animation: errorIn .4s var(--ease); }
 .rsvp__status.is-ok { color: var(--sage-deep); }
 .rsvp__status a { color: inherit; text-underline-offset: 3px; }
 .fineprint { margin: .6rem 0 0; text-align: center; font: 400 .82rem/1.5 var(--sans); color: var(--ink-soft); }
@@ -435,9 +503,10 @@ input[type="text"]:focus-visible, textarea:focus-visible { outline: none; }
   background: linear-gradient(180deg, rgba(225, 232, 220, .55), rgba(253, 251, 246, .6));
   border: 1px solid rgba(184, 153, 91, .55);
   outline: 1px solid rgba(184, 153, 91, .22); outline-offset: 3px;
-  animation: riseIn .9s var(--ease) both;
+  animation: settleIn .8s var(--ease) both;
 }
-.rsvp__ready svg { color: var(--gold); margin: 0 auto .35rem; display: block; }
+.rsvp__ready svg { color: var(--gold); margin: 0 auto .35rem; display: block; animation: iconPop .7s .15s var(--ease) both; }
+.btn--solid.is-sent svg { animation: sendNudge .7s var(--ease); }
 .rsvp__ready-title { margin: 0 0 .35rem; font-size: 1.32rem; font-style: italic; font-weight: 500; line-height: 1.3; color: var(--sage-deep); }
 .rsvp__ready-body { margin: 0; font: 400 .88rem/1.65 var(--sans); color: var(--ink-soft); }
 .rsvp__ready-link { display: inline-block; margin-top: .55rem; padding: .55rem .5rem; min-height: 44px; font: 500 .68rem/1.6 var(--sans); letter-spacing: .2em; text-transform: uppercase; color: var(--sage-deep); text-underline-offset: 4px; text-decoration-color: var(--gold); }
@@ -450,8 +519,8 @@ input[type="text"]:focus-visible, textarea:focus-visible { outline: none; }
 .contact__card {
   display: flex; flex-direction: column; align-items: center; min-width: 0;
   padding: .7rem .5rem .65rem;
-  background: rgba(253, 251, 246, .78);
-  border: 1px solid rgba(184, 153, 91, .38);
+  background: rgba(253, 251, 246, .6);
+  border: 1px solid rgba(184, 153, 91, .26);
 }
 .contact__name { margin: 0; font-family: var(--serif); font-size: 1.35rem; font-weight: 600; letter-spacing: .04em; line-height: 1.15; color: var(--ink); }
 .contact__role { margin: .1rem 0 .5rem; font: 500 .58rem/1.4 var(--sans); letter-spacing: .26em; text-indent: .26em; text-transform: uppercase; color: #8f7440; }
@@ -471,10 +540,10 @@ input[type="text"]:focus-visible, textarea:focus-visible { outline: none; }
 /* Final — quiet closing message */
 .final { padding-top: clamp(.5rem, 3vw, 1.5rem); padding-bottom: calc(clamp(5rem, 16vw, 7.5rem) + env(safe-area-inset-bottom, 0px)); }
 .final .divider { margin-top: 0; margin-bottom: 2.2rem; }
-.thanks { text-wrap: balance; margin: 0 auto; max-width: 21rem; font-size: clamp(1.4rem, 5.8vw, 1.75rem); font-style: italic; line-height: 1.5; color: var(--ink); }
-.withlove { margin: 2.6rem 0 .2rem; font-size: 1.2rem; font-weight: 500; letter-spacing: .1em; color: var(--ink-soft); }
-.signoff { margin: 0; font-size: clamp(1.9rem, 10.4vw, 3.9rem); color: var(--sage-deep); line-height: 1.25; white-space: nowrap; }
-.ornament { display: block; margin: 1.6rem auto 0; width: 44px; height: auto; }
+.thanks { text-wrap: balance; margin: 0 auto; max-width: 21rem; font-size: clamp(1.4rem, 5.8vw, 1.7rem); font-style: italic; font-weight: 500; line-height: 1.5; color: var(--ink); }
+.withlove { margin: 2.4rem 0 .5rem; font-size: 1.2rem; font-style: italic; font-weight: 500; letter-spacing: .04em; color: var(--ink-soft); }
+.signoff { margin: 0; font-size: clamp(1.55rem, 7.6vw, 3rem); color: var(--ink); line-height: 1.25; white-space: nowrap; }
+.ornament { display: block; margin: 2.4rem auto 0; width: 44px; height: auto; }
 .ornament.reveal.in { opacity: .6; }
 .credit { margin: 3rem 0 0; font: 400 .66rem/1.6 var(--sans); letter-spacing: .26em; text-indent: .26em; text-transform: uppercase; color: var(--ink-soft); opacity: .7; }
 
@@ -516,7 +585,6 @@ input[type="text"]:focus-visible, textarea:focus-visible { outline: none; }
    -------------------------------------------------------------------------- */
 
 /* Hero: the couple's names carry the page; a soft champagne glow lifts the portrait */
-.names .name { font-size: clamp(3.3rem, 15.6vw, 6rem); }
 .portrait { position: relative; }
 .portrait::before {
   content: ""; position: absolute; z-index: -1; inset: -20% -28%;
@@ -529,9 +597,10 @@ input[type="text"]:focus-visible, textarea:focus-visible { outline: none; }
 /* Botanical details: slow sway + a few pixels of parallax (--py is set from js/main.js).
    `rotate` and `translate` are separate properties, so they stack on the existing transforms. */
 .sprig, .ornament { translate: 0 var(--py, 0px); }
-.sprig { animation: sprigSway 9s ease-in-out infinite; }
-.sprig--r { animation-duration: 11s; animation-delay: -4s; }
-@keyframes sprigSway { 0%, 100% { rotate: -1.6deg; } 50% { rotate: 1.8deg; } }
+.sprig { animation: sprigSway 12s ease-in-out infinite; }
+.sprig--r { animation-duration: 15s; animation-delay: -5s; }
+.ornament { transform-origin: 50% 100%; animation: sprigSway 14s ease-in-out -3s infinite; }
+@keyframes sprigSway { 0%, 100% { rotate: -1.1deg; scale: 1; } 50% { rotate: 1.3deg; scale: 1.012; } }
 
 /* Countdown: framed like a printed card — fine gold rules with a small diamond on each */
 .cd { position: relative; padding: 1.5rem 0 1.4rem; }
@@ -562,13 +631,26 @@ input[type="text"]:focus-visible, textarea:focus-visible { outline: none; }
 .rsvp__ready-warm { margin: 0 0 .5rem; font-size: 1.12rem; font-style: italic; line-height: 1.45; color: var(--ink); }
 .rsvp__ready-warm:empty { display: none; }
 
-/* Closing: the signature appears as if written, left to right */
-.signoff { white-space: normal; text-wrap: balance; padding-inline: .25rem; }
-.signoff.reveal.in { animation: inkWrite 2.6s cubic-bezier(.45, .05, .25, 1) .7s both; }
-@keyframes inkWrite {
-  from { clip-path: inset(-25% 100% -25% -5%); }
-  to   { clip-path: inset(-25% -5% -25% -5%); }
+/* Closing: the signature is composed, not typed — each name rises into place,
+   the ampersand warms in last, then a fine gold line draws beneath. ~1.6 s in total. */
+.signoff { padding-inline: .25rem; position: relative; display: inline-block; }
+.signoff__a, .signoff__b, .signoff__amp { display: inline-block; opacity: 0; }
+.signoff__a, .signoff__b { transform: translateY(14px); }
+.signoff__amp { font-style: italic; color: var(--gold); transform: scale(.6); white-space: pre; }
+.signoff.in .signoff__a, .signoff.in .signoff__b, .signoff.in .signoff__amp {
+  opacity: 1; transform: none;
+  transition: opacity 1s var(--ease), transform 1.2s var(--ease);
 }
+.signoff.in .signoff__a { transition-delay: calc(var(--d, 0s) + .05s); }
+.signoff.in .signoff__amp { transition-delay: calc(var(--d, 0s) + .45s); }
+.signoff.in .signoff__b { transition-delay: calc(var(--d, 0s) + .6s); }
+.signoff::after {
+  content: ""; position: absolute; left: 18%; right: 18%; bottom: -.15em; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  transform: scaleX(0); transform-origin: 50% 50%;
+  transition: transform 1.4s cubic-bezier(.65, .05, .2, 1) calc(var(--d, 0s) + 1s);
+}
+.signoff.in::after { transform: scaleX(1); }
 
 /* Short screens (small phones, 720px laptops): tighter hero so the Swipe Down hint stays in view */
 @media (max-height: 760px) {
@@ -576,7 +658,7 @@ input[type="text"]:focus-visible, textarea:focus-visible { outline: none; }
   .portrait { margin-bottom: 1rem; }
   .hero .eyebrow { margin-bottom: .8rem; }
   .lead { margin-top: .8rem; }
-  .names .name { font-size: clamp(3rem, 9svh, 5rem); }
+  .names .name { font-size: clamp(2.6rem, min(8.6svh, 14.6vw), 4.6rem); }
 }
 @media (min-width: 900px) { .hero { padding-top: 3.4rem; } }
 
@@ -588,10 +670,9 @@ input[type="text"]:focus-visible, textarea:focus-visible { outline: none; }
     box-shadow: 0 0 0 1px rgba(184, 153, 91, .3), 0 60px 120px -70px rgba(42, 47, 42, .55);
   }
   .portrait { width: clamp(190px, 28svh, 280px); margin-bottom: 1.1rem; }
-  .names .name { font-size: clamp(3.4rem, 9.5svh, 5.6rem); }
-  .names .and { font-size: clamp(1.4rem, 3.6svh, 2.1rem); }
-  .lead { max-width: 26rem; font-size: .82rem; }
-  .hero__date { font-size: .78rem; }
+  .names .name { font-size: clamp(3rem, 8.6svh, 5.2rem); }
+  .names .and { font-size: clamp(1.3rem, 3.4svh, 2rem); }
+  .lead { max-width: 26rem; }
   .sprig { width: 78px; }
   .date__day { font-size: 6.8rem; }
   .cd { max-width: 36rem; }
@@ -610,13 +691,18 @@ input[type="text"]:focus-visible, textarea:focus-visible { outline: none; }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   .swipe__arrow, .intro__open, .intro.is-opening .intro__open-label, .music__ring, .music__icon, .rsvp__ready { animation: none !important; }
-  .reveal, .divider img, .cd.reveal .cd__item, .portrait__photo img { opacity: 1; transform: none; filter: none; }
+  .reveal, .divider img, .cd.reveal .cd__item, .portrait__photo img { opacity: 1; transform: none; clip-path: none; }
+  .reveal.r-focus { filter: none; }
+  .reveal.r-mask > * { clip-path: none !important; transform: none !important; }
+  .signoff__a, .signoff__b, .signoff__amp { opacity: 1; transform: none; }
+  .signoff::after { transform: scaleX(1); transition: none; }
+  .hero::before { transition: none; opacity: 1; }
+  .choice input:checked + span, .rsvp__status.is-error, .rsvp__ready svg, .btn--solid.is-sent svg, .ornament { animation: none !important; }
   .ornament { opacity: .6; transform: none; }
   .sprig--l, .sprig--r { opacity: .5; }
-  .sprig, .signoff.reveal.in, .field.is-invalid { animation: none !important; }
+  .sprig, .field.is-invalid { animation: none !important; }
   .sprig, .ornament { translate: none; }
-  .signoff { clip-path: none; }
-  .portrait::before { transition-duration: .01s !important; }
+    .portrait::before { transition-duration: .01s !important; }
   .choice--card span::after { transition-duration: .01s !important; }
-  .intro, .intro__video, .intro__poster, .reveal.in, .divider img, .cd__item, .btn, .portrait__photo img, .music, .music__slash, .maplink span, .maplink svg { transition-duration: .01s !important; transition-delay: 0s !important; }
+  .intro, .intro__video, .intro__poster, .reveal.in, .divider img, .cd__item, .signoff__a, .signoff__b, .signoff__amp, .btn, .portrait__photo img, .music, .music__slash, .maplink span, .maplink svg { transition-duration: .01s !important; transition-delay: 0s !important; }
 }
