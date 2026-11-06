@@ -14,12 +14,22 @@ assets/video/       opening.mp4            ← opening video (Google Flow)
                     poster.jpg             ← frame shown while the opening video loads
                     background.mp4         ← looping forest background (silent)
                     background-poster.jpg  ← still frame used if the background can't play
-assets/botanical/   divider.svg (small sprig divider)
+assets/audio/       background-music.mp3   ← background music (128 kbps, plays after the guest taps open)
+assets/botanical/   divider.svg (sprig divider) · sprig.svg (single eucalyptus sprig ornament)
 vercel.json         caching + security headers
 ```
 
+## Background music
+`assets/audio/background-music.mp3` (settings in `js/config.js → music`).
+- It **never autoplays**. It starts only when the guest taps **Tap to Open Invitation**, with a gentle fade-in, together with the opening video (the video's own sound is ignored — it is muted).
+- The same audio keeps playing, without restarting, when the opening video ends and while the guest scrolls; it loops.
+- A small floating button (bottom-right, above the phone's safe area) mutes / unmutes with a fade. Muting pauses the audio quietly; unmuting resumes from the same place. Music also pauses while the page is hidden (tab switch / screen lock) and resumes when it returns.
+- For links that skip the opening (e.g. `…/#rsvp`) the button appears switched off; tapping it starts the music.
+- `volume` (0–1), `fadeInMs`, `fadeOutMs` can be changed in `js/config.js`. Replacing the file under the same name? Bump `music.version`. Set `music.src` to `""` to remove the music and its button.
+- iPhone Safari ignores `audio.volume`, so there the fade goes through a Web Audio gain node; if that is unavailable the music simply plays at full volume without a fade.
+
 ## Couple photograph
-The single hero portrait is `assets/photos/couple.jpg` (path in `js/config.js → photo.src`). It is shown uncropped at its own 2:3 shape inside an arched gold-and-ivory frame. To change it, overwrite the file with another portrait photo of about the same shape; set `photo.src` to `""` to hide it.
+The single hero portrait is `assets/photos/couple.jpg` (path in `js/config.js → photo.src`). It is shown whole (never cropped or stretched) at its own 2:3 shape as a printed photograph: thin champagne-gold frame, ivory mat, fine hairline around the print and a soft shadow. To change it, overwrite the file with another portrait photo of about the same shape; set `photo.src` to `""` to hide it.
 
 ## How the opening works
 1. The poster (`video.poster`) and a **Tap to Open Invitation** button appear straight away.
@@ -38,7 +48,7 @@ The site never depends on the video length: it moves on when the video ends, so 
 Leave `video.src` as `""` to skip the video and use the elegant fallback.
 
 ## RSVP & contacts
-The form (name → attendance → optional *A Little Message* → who to send to → button) collects only the guest's name, attendance and the optional message; it opens a pre-filled WhatsApp chat with the chosen person (Tharindu / Dinushma). Below the form, each of them has a compact **Call** (`tel:`) and **WhatsApp** (`wa.me`) link. Names, roles and numbers live in `js/config.js → rsvp.contacts`.
+The form (name → attendance → optional *A Little Message* → who to send to → button) collects only the guest's name, attendance and the optional message; it opens a pre-filled WhatsApp chat with the chosen person (Tharindu / Dinushma). After the guest sends the form, WhatsApp opens with the message pre-filled and a quiet note appears under the button (*"Your WhatsApp message is ready. Please press Send to confirm your response."*) — the RSVP is only complete once the guest presses Send in WhatsApp. The wording is in `js/config.js → text.rsvpReadyTitle / rsvpReadyBody`. Below the form, each of them has a compact **Call** (`tel:`) and **WhatsApp** (`wa.me`) link. Names, roles and numbers live in `js/config.js → rsvp.contacts`.
 
 ## Background video (looping)
 A silent, looping video sits behind the whole invitation at low opacity. It starts fading in as the opening video fades out.
@@ -52,7 +62,7 @@ A silent, looping video sits behind the whole invitation at low opacity. It star
   (this assumes a 12-second source; adjust the trim times for other lengths). Then bump `background.version`.
 
 ## Edit details
-Names, date/time, venue, map link, RSVP numbers, deadline and all wording are in `js/config.js`.
+Names, date/time, venue, map link, RSVP numbers, deadline and all wording (including the closing line `text.withLove`) are in `js/config.js`.
 The date, weekday and countdown are all calculated from `event.dateTime` (`2026-12-05T11:00:00+05:30`).
 Note: the `<title>` and social-preview tags in `index.html` also contain the names — change them there too if names ever change.
 
@@ -70,3 +80,6 @@ It fills in `og:url`, `og:image`, `twitter:image`, the canonical link and `site.
 ## Test locally
 `python3 -m http.server 8000` → open http://localhost:8000 (a server is needed for the video; opening the file directly may not work).
 Add `#rsvp` (or any `#section`) to the URL to skip the opening video.
+
+## Typography
+Cormorant Garamond (serif) for the date, venue, time and titles · Pinyon Script only for the couple's names and sign-off · Jost (clean sans) for descriptions, labels, buttons and form fields. All three load from Google Fonts in `index.html`.

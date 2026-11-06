@@ -27,7 +27,7 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Pinyon+Script&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Jost:wght@400;500&family=Pinyon+Script&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/styles.css">
 
   <!-- Flags: js enabled; show the opening video unless the link targets a section (#rsvp etc.) -->
@@ -87,9 +87,11 @@
 
         <!-- The couple's photograph (assets/photos/couple.jpg — set in js/config.js → photo) -->
         <figure class="portrait reveal" id="portrait" style="--d:.35s">
-          <div class="portrait__mat">
-            <div class="portrait__photo">
+          <div class="portrait__frame">
+            <div class="portrait__mat">
+              <div class="portrait__photo">
               <img id="portraitImg" src="assets/photos/couple.jpg" width="853" height="1280" alt="Tharindu and Dinushma, smiling at each other and holding hands" decoding="async">
+              </div>
             </div>
           </div>
         </figure>
@@ -111,6 +113,8 @@
 
     <!-- 2 · Details -->
     <section class="section details" id="details">
+      <img class="sprig sprig--l" src="assets/botanical/sprig.svg" alt="" aria-hidden="true" loading="lazy" decoding="async" width="90" height="170">
+      <img class="sprig sprig--r" src="assets/botanical/sprig.svg" alt="" aria-hidden="true" loading="lazy" decoding="async" width="90" height="170">
 
       <p class="eyebrow reveal" data-cfg="text.detailsEyebrow"></p>
 
@@ -121,16 +125,18 @@
       </div>
       <p class="year reveal" style="--d:.25s" id="dYear"></p>
 
-      <p class="time reveal" style="--d:.35s" data-cfg="event.timeText"></p>
+      <div class="rule reveal" style="--d:.35s" aria-hidden="true"><i></i></div>
+      <p class="time reveal" style="--d:.42s" data-cfg="event.timeText"></p>
 
-      <div class="divider reveal" style="--d:.45s" aria-hidden="true"><img src="assets/botanical/divider.svg" alt="" loading="lazy"></div>
+      <div class="divider reveal" style="--d:.5s" aria-hidden="true"><img src="assets/botanical/divider.svg" alt="" loading="lazy"></div>
 
-      <h2 class="venue reveal" style="--d:.55s" data-cfg="venue.name"></h2>
-      <p class="area reveal" style="--d:.62s" data-cfg="venue.area"></p>
+      <svg class="pin reveal" style="--d:.58s" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12Z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><circle cx="12" cy="10" r="2.4" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>
+      <h2 class="venue reveal" style="--d:.64s" data-cfg="venue.name"></h2>
+      <p class="area reveal" style="--d:.7s" data-cfg="venue.area"></p>
 
-      <a id="mapLink" class="btn reveal" style="--d:.75s" target="_blank" rel="noopener noreferrer">
-        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12Z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><circle cx="12" cy="10" r="2.6" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+      <a id="mapLink" class="maplink reveal" style="--d:.8s" target="_blank" rel="noopener noreferrer">
         <span data-cfg="venue.mapsLabel"></span>
+        <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M7 17 17 7M9 7h8v8" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </a>
     </section>
 
@@ -188,6 +194,12 @@
           Send via WhatsApp
         </button>
         <p id="rsvpStatus" class="rsvp__status" role="status" aria-live="polite"></p>
+        <div id="rsvpReady" class="rsvp__ready" role="status" aria-live="polite" hidden>
+          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M20 11.6A8 8 0 0 1 8.2 18.7L4 20l1.3-4A8 8 0 1 1 20 11.6Z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+          <p class="rsvp__ready-title" data-cfg="text.rsvpReadyTitle"></p>
+          <p class="rsvp__ready-body" data-cfg="text.rsvpReadyBody"></p>
+          <a id="rsvpReopen" class="rsvp__ready-link" target="_blank" rel="noopener noreferrer">Open WhatsApp again</a>
+        </div>
         <p class="fineprint">This opens WhatsApp with your reply ready to send.</p>
       </form>
 
@@ -199,16 +211,32 @@
       </div>
     </section>
 
-    <!-- 5 · Thank you -->
+    <!-- 5 · Closing message -->
     <section class="section final" id="thanks">
       <div class="divider reveal" aria-hidden="true"><img src="assets/botanical/divider.svg" alt="" loading="lazy"></div>
       <p class="thanks reveal" style="--d:.15s" data-cfg="text.thanks"></p>
       <p class="withlove reveal" style="--d:.35s" data-cfg="text.withLove"></p>
       <p class="script signoff reveal" style="--d:.55s"><span data-cfg="couple.first"></span> &amp; <span data-cfg="couple.second"></span></p>
+      <img class="ornament reveal" style="--d:.75s" src="assets/botanical/sprig.svg" alt="" aria-hidden="true" loading="lazy" decoding="async" width="90" height="170">
 
       <p id="credit" class="credit"></p>
     </section>
   </main>
+
+  <!-- ================= BACKGROUND MUSIC =================
+       File: assets/audio/background-music.mp3 (set in js/config.js → music).
+       No src and no autoplay: js/main.js loads and plays it only after the guest
+       taps "Tap to Open Invitation" (or taps this button). -->
+  <audio id="bgMusic" preload="none" loop playsinline></audio>
+  <button id="musicBtn" class="music" type="button" aria-pressed="false" aria-label="Play background music" hidden>
+    <span class="music__ring" aria-hidden="true"></span>
+    <svg class="music__icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+      <path d="M9 18V6.2l9-1.7V16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="6.8" cy="18" r="2.3" fill="none" stroke="currentColor" stroke-width="1.5"/>
+      <circle cx="15.8" cy="16.2" r="2.3" fill="none" stroke="currentColor" stroke-width="1.5"/>
+      <path class="music__slash" d="M4 4l16 16" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+    </svg>
+  </button>
 
 </body>
 </html>

@@ -1,5 +1,5 @@
 /* Tharindu & Dinushma — invitation behaviour.
-   Sections: config binding · reveals · background · tap-to-open intro · countdown · RSVP · contacts */
+   Sections: config binding · reveals · background · music · tap-to-open intro · countdown · RSVP · contacts */
 (function () {
   "use strict";
 
@@ -68,6 +68,7 @@
    * ------------------------------------------------------------------ */
   var revealsStarted = false;
   var bgCtl = null; // set by initBackground()
+  var musicCtl = null; // set by initMusic()
   function startReveals() {
     if (revealsStarted) return;
     revealsStarted = true;
@@ -136,16 +137,158 @@
   }
 
   /* ------------------------------------------------------------------ *
+   * 2c. Background music (one <audio>, started by the guest's tap)
+   *     - never autoplays; the first play() happens inside the tap
+   *     - fades in / out; mute = fade out + pause, unmute = resume + fade in
+   *     - the same element keeps playing through the intro -> invitation
+   *       change, so it is never restarted or duplicated
+   *     - iOS Safari ignores audio.volume, so there the fade goes through a
+   *       Web Audio gain node; if that is unavailable it simply plays at full
+   * ------------------------------------------------------------------ */
+  function initMusic() {
+    var c = cfg.music;
+    var audio = $("#bgMusic");
+    var btn = $("#musicBtn");
+    if (!audio || !btn) return null;
+    if (!c || !c.src) { audio.remove(); btn.remove(); return null; }
+
+    var target = typeof c.volume === "number" ? Math.max(0, Math.min(1, c.volume)) : 0.6;
+    var fadeIn = c.fadeInMs > 0 ? c.fadeInMs : 2600;
+    var fadeOut = c.fadeOutMs > 0 ? c.fadeOutMs : 900;
+    var wantOn = false;      // the guest's intent: music on (true) or muted (false)
+    var loaded = false, failed = false;
+    var level = 0;           // current fade level, 0..1 (multiplied by `target`)
+    var fadeId = 0;
+    var ctx = null, gain = null, useGain = false;
+
+    function versioned(url) {
+      return url + (c.version ? (url.indexOf("?") > -1 ? "&" : "?") + "v=" + encodeURIComponent(c.version) : "");
+    }
+
+    // Does this browser honour audio.volume? (iOS Safari does not.)
+    var volumeWorks = (function () {
+      try { audio.volume = 0.5; var ok = Math.abs(audio.volume - 0.5) < 0.01; audio.volume = 1; return ok; }
+      catch (e) { return false; }
+    })();
+
+    function setLevel(v) {
+      level = Math.max(0, Math.min(1, v));
+      var out = level * target;
+      if (useGain && gain) gain.gain.value = out;
+      else if (volumeWorks) audio.volume = out;
+    }
+
+    // Smooth (sine) fade of `level` to `to` over `ms`.
+    function fadeTo(to, ms, done) {
+      var id = ++fadeId, from = level, t0 = performance.now();
+      if (!(ms > 0) || from === to) { setLevel(to); if (done) done(); return; }
+      (function step(now) {
+        if (id !== fadeId) return;                       // a newer fade took over
+        var k = Math.min(1, (now - t0) / ms);
+        setLevel(from + (to - from) * (0.5 - 0.5 * Math.cos(Math.PI * k)));
+        if (k < 1) requestAnimationFrame(step); else if (done) done();
+      })(t0);
+    }
+
+    function setUi(on) {
+      btn.setAttribute("aria-pressed", on ? "true" : "false");
+      btn.setAttribute("aria-label", on ? "Mute music" : (loaded ? "Unmute music" : "Play background music"));
+      btn.title = on ? "Mute music" : (loaded ? "Unmute music" : "Play background music");
+    }
+
+    // iOS: route the element through a gain node so the fade is audible.
+    function setupGain() {
+      if (volumeWorks || useGain) return;
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      try {
+        ctx = new AC();
+        var src = ctx.createMediaElementSource(audio);
+        gain = ctx.createGain();
+        gain.gain.value = 0;
+        src.connect(gain); gain.connect(ctx.destination);
+        useGain = true;
+      } catch (e) { ctx = null; gain = null; useGain = false; }
+    }
+    function wake() { if (ctx && ctx.state !== "running" && ctx.resume) { try { ctx.resume(); } catch (e) {} } }
+
+    function giveUp() {            // file missing / blocked: leave the invitation silent, but intact
+      failed = true; wantOn = false;
+      btn.hidden = true; btn.classList.remove("is-visible");
+    }
+    audio.addEventListener("error", function () { if (loaded) giveUp(); });
+
+    function play() {
+      if (failed) return;
+      if (!loaded) {
+        loaded = true;
+        audio.loop = true;
+        audio.preload = "auto";
+        audio.src = versioned(c.src);
+      }
+      setupGain();
+      wake();
+      setLevel(level);                                   // apply the current level to the fresh output path
+      var p = audio.play();
+      var started = function () {
+        if (!wantOn) return;                             // guest muted again while it was starting
+        fadeTo(1, fadeIn);
+      };
+      if (p && p.then) {
+        p.then(started, function () {
+          // Blocked or failed: stay silent, show the control as "off" so a tap can try again.
+          wantOn = false; setUi(false);
+        });
+      } else started();
+    }
+
+    function on() {
+      if (failed) return;
+      wantOn = true; setUi(true);
+      if (!loaded) level = 0;
+      play();
+    }
+    function off() {
+      wantOn = false; setUi(false);
+      fadeTo(0, fadeOut, function () { if (!wantOn) { try { audio.pause(); } catch (e) {} } });
+    }
+
+    btn.addEventListener("click", function () { if (wantOn) off(); else on(); });
+
+    // Respect the device: pause when the page is hidden, pick up again (if still wanted) when it returns.
+    document.addEventListener("visibilitychange", function () {
+      if (failed || !loaded) return;
+      if (document.hidden) { try { audio.pause(); } catch (e) {} }
+      else if (wantOn) {
+        wake();
+        var p = audio.play();
+        if (p && p.catch) p.catch(function () { wantOn = false; setUi(false); });
+      }
+    });
+
+    setUi(false);
+    return {
+      start: on,                                         // called from the "Tap to Open Invitation" tap
+      showControl: function () {
+        if (failed) return;
+        btn.hidden = false;
+        requestAnimationFrame(function () { requestAnimationFrame(function () { btn.classList.add("is-visible"); }); });
+      }
+    };
+  }
+
+  /* ------------------------------------------------------------------ *
    * 3. Opening video
    * ------------------------------------------------------------------ */
   function initIntro() {
     var intro = $("#intro");
-    if (!intro) { startReveals(); return; }
+    if (!intro) { startReveals(); if (musicCtl) musicCtl.showControl(); return; }
 
     // Deep link (e.g. #rsvp) or JS-less state: skip the opening.
     if (!root.classList.contains("intro-active")) {
       intro.remove();
       startReveals();
+      if (musicCtl) musicCtl.showControl();
       return;
     }
 
@@ -179,6 +322,7 @@
       main.inert = false;
       window.scrollTo(0, 0);
       startReveals();
+      if (musicCtl) musicCtl.showControl();
       setTimeout(function () {
         try { video.pause(); video.removeAttribute("src"); video.load(); } catch (e) {}
         intro.remove();
@@ -190,6 +334,7 @@
     function fallback() {
       if (finished) return;
       intro.classList.add("is-fallback", "is-playing");
+      if (musicCtl) musicCtl.showControl();
       try { video.pause(); } catch (e) {}
       timers.fallback = setTimeout(finish, cfgV.fallbackAutoOpenMs > 0 ? cfgV.fallbackAutoOpenMs : 2500);
     }
@@ -200,6 +345,7 @@
       started = true;
       clearTimeout(timers.stall);
       intro.classList.add("is-playing");
+      if (musicCtl) musicCtl.showControl();
       if (isFinite(video.duration) && video.duration > 0) {
         // Safety net: if "ended" never fires, move on shortly after the clip should be over.
         timers.watchdog = setTimeout(finish, Math.max(0, video.duration - video.currentTime) * 1000 + 2500);
@@ -224,6 +370,7 @@
       intro.classList.add("is-opening");
       label.textContent = "Opening\u2026";
       if (bgCtl) bgCtl.load();
+      if (musicCtl) musicCtl.start();   // music begins with the tap (gentle fade-in), independent of the video's own sound
 
       // No video configured, or the guest prefers reduced motion: skip the film.
       if (!cfgV.src || reduceMotion) { cfgV.src ? finish() : fallback(); return; }
@@ -330,6 +477,8 @@
     var nameEl = $("#guestName");
     var msgEl = $("#guestMessage");
     var status = $("#rsvpStatus");
+    var ready = $("#rsvpReady");
+    var reopen = $("#rsvpReopen");
 
     // Recipient choices from config
     cfg.rsvp.contacts.forEach(function (c, i) {
@@ -353,11 +502,14 @@
     function setError(msg) {
       status.className = "rsvp__status" + (msg ? " is-error" : "");
       status.textContent = msg;
+      if (msg) ready.hidden = true;
     }
 
     form.addEventListener("change", function (e) {
       if (e.target.name === "attend") setError("");
     });
+    form.addEventListener("input", function () { if (!ready.hidden) ready.hidden = true; });
+    form.addEventListener("change", function () { if (!ready.hidden) ready.hidden = true; });
 
     form.addEventListener("submit", function (e) {
       e.preventDefault();
@@ -390,13 +542,14 @@
       a.click();
       a.remove();
 
-      status.className = "rsvp__status is-ok";
-      status.innerHTML = "";
-      status.append("Opening WhatsApp… If nothing happens, ");
-      var link = document.createElement("a");
-      link.href = url; link.target = "_blank"; link.rel = "noopener noreferrer";
-      link.textContent = "tap here to send your reply";
-      status.append(link, ".");
+      // Quiet confirmation: the message is ready in WhatsApp, but nothing is sent until the guest presses Send.
+      status.className = "rsvp__status"; status.textContent = "";
+      reopen.href = url;
+      ready.hidden = false;
+      ready.style.animation = "none"; void ready.offsetWidth; ready.style.animation = "";   // replay the soft entrance on every send
+      if (!reduceMotion && ready.scrollIntoView) {
+        setTimeout(function () { ready.scrollIntoView({ behavior: "smooth", block: "nearest" }); }, 120);
+      }
     });
   }
 
@@ -448,6 +601,7 @@
   /* ------------------------------------------------------------------ */
   applyConfig();
   bgCtl = initBackground();
+  musicCtl = initMusic();
   initCountdown();
   initRsvp();
   initContacts();

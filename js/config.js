@@ -84,6 +84,22 @@ window.WEDDING_CONFIG = {
     opacity: 0.26
   },
 
+  /* ---- Background music --------------------------------------------------
+     Starts ONLY when the guest taps "Tap to Open Invitation" (browsers block
+     sound that starts on its own). It then plays continuously — through the
+     opening video and the whole invitation — and loops. The floating music
+     button lets guests mute / unmute.
+     volume: 0 … 1 (final level after the fade-in).
+     Replacing the file with the same name? bump `version`.
+     Leave `src` empty ("") to turn the music (and its button) off.          */
+  music: {
+    src: "assets/audio/background-music.mp3",
+    version: "1",
+    volume: 0.6,
+    fadeInMs: 2600,
+    fadeOutMs: 900
+  },
+
   /* ---- RSVP (WhatsApp) -------------------------------------------------- */
   rsvp: {
     deadlineText: "Kindly respond by 20 November 2026",
@@ -110,7 +126,9 @@ window.WEDDING_CONFIG = {
     messagePlaceholder: "Leave a little message for the couple...",
     contactEyebrow: "Prefer to reach us directly?",
     thanks: "Your presence will make our special day even more memorable.",
-    withLove: "With love,"
+    withLove: "With love and gratitude,",
+    rsvpReadyTitle: "Your WhatsApp message is ready.",
+    rsvpReadyBody: "Please press Send to confirm your response. Your RSVP is not complete until the message is sent."
   },
 
   /* Tiny credit line at the very bottom. Set to "" to hide. */
