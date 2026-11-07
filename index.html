@@ -25,12 +25,14 @@
   <meta name="twitter:image" content="/assets/social/og-image.jpg">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M4 28C6 14 16 5 28 4 27 17 18 27 4 28Z' fill='%237d9878'/%3E%3C/svg%3E">
 
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">
-  <!-- Opening poster: fetched early so the envelope is on screen at first paint.
-       Keep the ?v= in step with video.version in js/config.js. -->
+  <!-- Opening poster: fetched first so the envelope is on screen at first paint.
+       Keep the ?v= in step with video.version in js/config.js (also on #introPoster below). -->
   <link rel="preload" as="image" href="assets/video/poster.jpg?v=2" fetchpriority="high">
+  <!-- Fonts are self-hosted (assets/fonts, declared in css/styles.css). Only the three faces the
+       opening button and the hero names need are preloaded; the rest load as they are used. -->
+  <link rel="preload" as="font" type="font/woff2" href="assets/fonts/jost-latin-500-normal.woff2" crossorigin>
+  <link rel="preload" as="font" type="font/woff2" href="assets/fonts/pinyon-script-latin-400-normal.woff2" crossorigin>
+  <link rel="preload" as="font" type="font/woff2" href="assets/fonts/cormorant-garamond-latin-500-normal.woff2" crossorigin>
   <link rel="stylesheet" href="css/styles.css">
 
   <!-- Flags: js enabled; show the opening video unless the link targets a section (#rsvp etc.) -->
@@ -51,23 +53,22 @@
 
   <!-- ================= OPENING (poster + tap to open) =================
        Poster and video files are set in js/config.js → video.
-       The <video> has NO autoplay. js/main.js assigns its src ONCE, after the
-       first paint, so it can buffer while the guest looks at the poster; play()
-       is only ever called inside the guest's tap on "Tap to Open Invitation". -->
+       The <video> has NO autoplay. js/main.js starts buffering it quietly once the poster
+       has painted (preload only — no playback), and calls play() inside the guest's tap. -->
   <div id="intro" class="intro" role="dialog" aria-modal="true" aria-label="Wedding invitation — tap to open">
     <div class="intro__stage">
       <video id="introVideo" class="intro__video" muted playsinline preload="none"
              disablepictureinpicture disableremoteplayback tabindex="-1" aria-hidden="true"></video>
 
       <!-- Shown on top of the video until the video is actually rendering frames -->
-      <img id="introPoster" class="intro__poster" alt="" decoding="async" fetchpriority="high">
+      <img id="introPoster" class="intro__poster" alt="" decoding="async" fetchpriority="high" src="assets/video/poster.jpg?v=2">
 
       <!-- Shown only when the poster is missing, or the video cannot play -->
       <div class="intro__fallback" aria-hidden="true">
         <div class="intro__fallback-names">
-          <span class="display" data-cfg="couple.first"></span>
-          <span class="display and" data-cfg="couple.and"></span>
-          <span class="display" data-cfg="couple.second"></span>
+          <span class="fb-name" data-cfg="couple.first"></span>
+          <span class="fb-and" data-cfg="couple.and"></span>
+          <span class="fb-name" data-cfg="couple.second"></span>
         </div>
       </div>
 
@@ -80,76 +81,103 @@
 
   <noscript><p class="noscript">Please enable JavaScript to view this invitation.</p></noscript>
 
+  <!-- One hairline of champagne light along the top edge, filling as the guest scrolls -->
+  <div id="scrollProgress" class="scroll-progress" aria-hidden="true"><span></span></div>
+
   <!-- ================= INVITATION ================= -->
   <main id="invitation">
 
     <!-- 1 · Hero -->
     <section class="hero" id="top">
+      <div id="heroDust" class="hero__dust" aria-hidden="true"></div>
 
       <div class="hero__inner">
-        <p class="eyebrow reveal r-fade" style="--d:.15s" data-cfg="text.eyebrow"></p>
+        <p class="eyebrow reveal" data-anim="fade" style="--d:.2s" data-cfg="text.eyebrow"></p>
 
         <!-- The couple's photograph (assets/photos/couple.jpg — set in js/config.js → photo) -->
-        <figure class="portrait reveal r-photo" id="portrait" style="--d:.3s">
+        <!-- Arched portrait: a hairline arch, a gold frame, an ivory mat and the print itself, with a
+             slow ray of champagne light travelling round the arch and eucalyptus sprigs at its feet. -->
+        <figure class="portrait reveal" data-anim="photo" id="portrait" style="--d:.3s">
+          <span class="portrait__ring" aria-hidden="true"></span>
           <div class="portrait__frame">
             <div class="portrait__mat">
               <div class="portrait__photo">
-              <img id="portraitImg" src="assets/photos/couple.jpg" width="853" height="1280" alt="Tharindu and Dinushma, smiling at each other and holding hands" decoding="async">
+                <img id="portraitImg" src="assets/photos/couple.jpg" width="853" height="1280" alt="Tharindu and Dinushma, smiling at each other and holding hands" decoding="async">
               </div>
             </div>
           </div>
+          <img class="portrait__sprig portrait__sprig--l" src="assets/botanical/sprig.svg" alt="" aria-hidden="true" decoding="async" width="90" height="170">
+          <img class="portrait__sprig portrait__sprig--r" src="assets/botanical/sprig.svg" alt="" aria-hidden="true" decoding="async" width="90" height="170">
         </figure>
 
         <h1 class="names">
-          <span class="display name reveal r-name" style="--d:.7s" data-cfg="couple.first"></span>
-          <span class="display and reveal r-amp" style="--d:1s" data-cfg="couple.and"></span>
-          <span class="display name reveal r-name" style="--d:1.2s" data-cfg="couple.second"></span>
+          <span class="name reveal" data-anim="mask" style="--d:.7s"><span class="mask__in" data-cfg="couple.first"></span></span>
+          <span class="and reveal" data-anim="fade" style="--d:.92s" data-cfg="couple.and"></span>
+          <span class="name reveal" data-anim="mask" style="--d:1.3s"><span class="mask__in" data-cfg="couple.second"></span></span>
         </h1>
-        <p class="lead reveal r-fade" style="--d:1.6s" data-cfg="text.invite"></p>
-        <p class="hero__date reveal r-fade" style="--d:1.85s" id="heroDate"></p>
+        <p class="lead reveal" data-anim="fade" style="--d:1.65s" data-cfg="text.invite"></p>
+        <p class="hero__date reveal" data-anim="settle" style="--d:1.9s" id="heroDate"></p>
       </div>
 
-      <a class="swipe reveal r-fade" style="--d:2.2s" href="#details" aria-label="Swipe down to see the wedding details">
+      <a class="swipe reveal" data-anim="fade" style="--d:2.4s" href="#families" aria-label="Swipe down to see the wedding details">
         <span class="swipe__text" data-cfg="text.swipe"></span>
         <svg class="swipe__arrow" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 4v14M6 13l6 6 6-6" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </a>
     </section>
 
-    <!-- 2 · Details -->
+    <!-- 2 · Before we say "I do" + families (names and wording: js/config.js → families, text) -->
+    <section class="section families" id="families" aria-label="Before we say I do — our families">
+      <div class="families__mark" aria-hidden="true"><span>T</span><span>D</span></div>
+      <div class="divider reveal" data-anim="unfold" aria-hidden="true"><img src="assets/botanical/divider.svg" alt="" loading="lazy"></div>
+      <p class="eyebrow reveal" data-anim="fade" data-cfg="text.familiesEyebrow"></p>
+      <h2 class="families__heading reveal" data-anim="focus" style="--d:.12s" data-cfg="text.familiesHeading"></h2>
+      <p class="families__quote reveal" data-anim="fade" style="--d:.3s" data-cfg="text.familiesQuote"></p>
+      <p class="eyebrow families__together reveal" data-anim="fade" style="--d:.1s" data-cfg="text.familiesTogether"></p>
+      <div id="familiesRow" class="families__row"></div>
+      <p class="families__invite reveal" data-anim="fade" style="--d:.2s" data-cfg="text.familiesInvite"></p>
+    </section>
+
+    <!-- 3 · Details -->
     <section class="section details" id="details">
       <img class="sprig sprig--l" data-parallax="0.07" src="assets/botanical/sprig.svg" alt="" aria-hidden="true" loading="lazy" decoding="async" width="90" height="170">
       <img class="sprig sprig--r" data-parallax="0.05" src="assets/botanical/sprig.svg" alt="" aria-hidden="true" loading="lazy" decoding="async" width="90" height="170">
 
-      <p class="eyebrow reveal" data-cfg="text.detailsEyebrow"></p>
+      <p class="eyebrow reveal" data-anim="fade" data-cfg="text.detailsEyebrow"></p>
 
-      <div class="date reveal r-mask" style="--d:.15s">
-        <span class="date__side"><span id="dWeekday"></span></span>
-        <span class="date__day"><span id="dDay"></span><sup id="dSuffix"></sup></span>
-        <span class="date__side"><span id="dMonth"></span></span>
+      <div class="date">
+        <span class="date__side reveal" data-anim="side-l" style="--d:.3s"><span id="dWeekday"></span></span>
+        <span class="date__day reveal" data-anim="mask" style="--d:.05s"><span class="mask__in"><span id="dDay"></span><sup id="dSuffix"></sup></span></span>
+        <span class="date__side reveal" data-anim="side-r" style="--d:.3s"><span id="dMonth"></span></span>
       </div>
-      <p class="year reveal r-fade" style="--d:.4s" id="dYear"></p>
+      <p class="year reveal" data-anim="fade" style="--d:.5s" id="dYear"></p>
 
-      <div class="rule reveal r-rule" style="--d:.5s" aria-hidden="true"><i></i></div>
-      <p class="time reveal" style="--d:.42s" data-cfg="event.timeText"></p>
+      <div class="rule reveal" data-anim="line" style="--d:.6s" aria-hidden="true"><i></i></div>
+      <p class="time reveal" data-anim="fade" style="--d:.68s" data-cfg="event.timeText"></p>
 
-      <div class="divider reveal" style="--d:.5s" aria-hidden="true"><img src="assets/botanical/divider.svg" alt="" loading="lazy"></div>
+      <div class="divider reveal" data-anim="unfold" style="--d:.8s" aria-hidden="true"><img src="assets/botanical/divider.svg" alt="" loading="lazy"></div>
 
-      <svg class="pin reveal" style="--d:.58s" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12Z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><circle cx="12" cy="10" r="2.4" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>
-      <h2 class="venue reveal r-venue" style="--d:.64s" data-cfg="venue.name"></h2>
-      <p class="area reveal" style="--d:.7s" data-cfg="venue.area"></p>
+      <svg class="pin reveal" data-anim="drop" style="--d:.95s" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12Z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><circle cx="12" cy="10" r="2.4" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>
+      <h2 class="venue reveal" data-anim="settle" style="--d:1.05s" data-cfg="venue.name"></h2>
+      <p class="area reveal" data-anim="fade" style="--d:1.2s" data-cfg="venue.area"></p>
 
-      <a id="mapLink" class="maplink reveal" style="--d:.8s" target="_blank" rel="noopener noreferrer">
+      <a id="mapLink" class="maplink reveal" data-anim="fade" style="--d:1.35s" target="_blank" rel="noopener noreferrer">
         <span data-cfg="venue.mapsLabel"></span>
         <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M7 17 17 7M9 7h8v8" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </a>
+
+      <!-- Downloads a calendar file with the event and two reminders (js/config.js → calendar) -->
+      <button id="saveDateBtn" class="savedate reveal" data-anim="fade" style="--d:1.5s" type="button">
+        <svg class="savedate__icon" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="2" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M3.5 10h17M8 3v4M16 3v4" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path class="savedate__tick" d="M9 15.2l2.1 2.1 4-4.3" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="savedate__text"><span class="savedate__label" data-cfg="text.saveDate"></span><small class="savedate__sub" data-cfg="text.saveDateSub"></small></span>
+      </button>
     </section>
 
     <!-- 3 · Countdown -->
     <section class="section countdown" id="countdown-section">
-      <p class="eyebrow reveal" data-cfg="text.countdownEyebrow"></p>
-      <h2 class="title reveal r-fade" style="--d:.12s" data-cfg="text.countdownTitle"></h2>
+      <p class="eyebrow reveal" data-anim="fade" data-cfg="text.countdownEyebrow"></p>
+      <h2 class="title reveal" data-anim="settle" style="--d:.12s" data-cfg="text.countdownTitle"></h2>
 
-      <div id="countdown" class="cd reveal" style="--d:.25s" role="timer" aria-live="off">
+      <div id="countdown" class="cd reveal" data-anim="seq" style="--d:.3s" role="timer" aria-live="off">
         <div class="cd__item"><span class="cd__num" data-unit="days">00</span><span class="cd__label">Days</span></div>
         <div class="cd__item"><span class="cd__num" data-unit="hours">00</span><span class="cd__label">Hours</span></div>
         <div class="cd__item"><span class="cd__num" data-unit="minutes">00</span><span class="cd__label">Minutes</span></div>
@@ -161,68 +189,104 @@
     <!-- 4 · RSVP -->
     <section class="section rsvp" id="rsvp">
 
-      <p class="eyebrow reveal" data-cfg="text.rsvpEyebrow"></p>
-      <h2 class="title reveal r-fade" style="--d:.12s" data-cfg="text.rsvpTitle"></h2>
-      <p class="deadline reveal" style="--d:.2s" data-cfg="rsvp.deadlineText"></p>
+      <p class="eyebrow reveal" data-anim="fade" data-cfg="text.rsvpEyebrow"></p>
+      <h2 class="title reveal" data-anim="focus" style="--d:.12s" data-cfg="text.rsvpTitle"></h2>
+      <p class="deadline reveal" data-anim="fade" style="--d:.35s" data-cfg="rsvp.deadlineText"></p>
 
-      <form id="rsvpForm" class="form reveal r-focus" style="--d:.3s" novalidate autocomplete="on">
-        <div class="field">
-          <label for="guestName">Your name</label>
-          <input id="guestName" name="name" type="text" aria-describedby="rsvpStatus" maxlength="60" autocomplete="name" placeholder="Full name" required>
-        </div>
+      <!-- Staged RSVP: choose → reply + details open → confirmation → WhatsApp button.
+           All wording is in js/config.js → text. CSS does the motion; js/main.js only sets
+           data-stage / data-attendance on #rsvp. -->
+      <form id="rsvpForm" class="form rsvp-form reveal" data-anim="panel" style="--d:.45s" novalidate autocomplete="on">
 
-        <fieldset class="field">
-          <legend>Attendance</legend>
-          <div class="choices choices--stack">
-            <label class="choice choice--card">
-              <input type="radio" name="attend" value="yes"><span>Joyfully Accept</span>
-            </label>
-            <label class="choice choice--card">
-              <input type="radio" name="attend" value="no"><span>Regretfully Decline</span>
-            </label>
+        <!-- 1 · CHOICE — the only thing offered at first -->
+        <div class="rsvp-choose">
+          <div class="rsvp-lift">
+            <span class="rsvp-label" data-cfg="text.rsvpChoiceLabel"></span>
+            <span class="rsvp-tap-hint" aria-hidden="true" data-cfg="text.rsvpTapHint"></span>
+            <div class="rsvp-toggle" role="radiogroup" aria-label="Attendance">
+              <button type="button" class="rsvp-choice" data-attendance="accept" role="radio" aria-checked="false">Joyfully <br>Accept</button>
+              <button type="button" class="rsvp-choice" data-attendance="decline" role="radio" aria-checked="false">Regretfully <br>Decline</button>
+            </div>
           </div>
-        </fieldset>
-
-        <div class="field">
-          <label for="guestMessage" data-cfg="text.messageLabel">A Little Message</label>
-          <textarea id="guestMessage" name="message" rows="3" maxlength="500" placeholder="Leave a little message for the couple..."></textarea>
         </div>
 
-        <fieldset class="field">
-          <legend>Send your reply to</legend>
-          <div id="rsvpTo" class="choices choices--pair"></div>
-        </fieldset>
+        <!-- 2 · REPLY + DETAILS — open only after a choice is made -->
+        <div class="rsvp-flow" id="rsvpFlow">
+          <div class="rsvp-flow-inner">
+            <div class="rsvp-reply rsvp-reply--accept">
+              <p class="rsvp-echo" data-cfg="text.rsvpAcceptEcho"></p>
+              <p class="rsvp-ask" data-cfg="text.rsvpAcceptAsk"></p>
+            </div>
+            <div class="rsvp-reply rsvp-reply--decline">
+              <p class="rsvp-echo" data-cfg="text.rsvpDeclineEcho"></p>
+              <p class="rsvp-ask" data-cfg="text.rsvpDeclineAsk"></p>
+            </div>
 
-        <button class="btn btn--solid btn--wide" type="submit">
-          <svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true"><path d="M20 11.6A8 8 0 0 1 8.2 18.7L4 20l1.3-4A8 8 0 1 1 20 11.6Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M9.2 8.6c.3 2.9 2.500 5.200 5.600 5.700l1.100-1.300-1.900-1-.9.800c-1-.4-1.800-1.200-2.200-2.200l.8-.9-1-1.900-1.500.8Z" fill="currentColor"/></svg>
-          Send via WhatsApp
-        </button>
-        <p id="rsvpStatus" class="rsvp__status" role="status" aria-live="polite"></p>
-        <div id="rsvpReady" class="rsvp__ready" role="status" aria-live="polite" hidden>
-          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M20 11.6A8 8 0 0 1 8.2 18.7L4 20l1.3-4A8 8 0 1 1 20 11.6Z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
-          <p class="rsvp__ready-title" data-cfg="text.rsvpReadyTitle"></p>
-          <p class="rsvp__ready-warm" id="rsvpWarm"></p>
-          <p class="rsvp__ready-body" data-cfg="text.rsvpReadyBody"></p>
-          <a id="rsvpReopen" class="rsvp__ready-link" target="_blank" rel="noopener noreferrer">Open WhatsApp again</a>
+            <div class="rsvp-details">
+              <div class="rsvp-step rsvp-step--name">
+                <label class="rsvp-label" for="guestName" data-cfg="text.nameLabel"></label>
+                <input class="rsvp-input" id="guestName" name="name" type="text" maxlength="60" autocomplete="name" placeholder="Enter your full name">
+              </div>
+              <div class="rsvp-step rsvp-step--message">
+                <label class="rsvp-label" for="guestMessage"><span data-cfg="text.messageLabel"></span> <span class="rsvp-optional" data-cfg="text.optional"></span></label>
+                <textarea class="rsvp-input rsvp-textarea" id="guestMessage" name="message" rows="2" maxlength="500" placeholder="Write a few words…"></textarea>
+              </div>
+              <div class="rsvp-step rsvp-step--side">
+                <span class="rsvp-label" data-cfg="text.rsvpWithLabel"></span>
+                <!-- buttons are built from js/config.js → rsvp.contacts -->
+                <div id="rsvpTo" class="rsvp-sides" role="radiogroup" aria-label="RSVP recipient"></div>
+              </div>
+              <p id="rsvpStatus" class="rsvp-validation" role="alert" hidden></p>
+            </div>
+          </div>
         </div>
-        <p class="fineprint">This opens WhatsApp with your reply ready to send.</p>
+
+        <!-- 3 · CONFIRMATION — then the WhatsApp button -->
+        <div class="rsvp-confirm" id="rsvpConfirm">
+          <div class="rsvp-thanks rsvp-thanks--accept">
+            <p class="rsvp-thanks-title" data-cfg="text.rsvpAcceptTitle"></p>
+            <span class="rsvp-thanks-line" aria-hidden="true"></span>
+            <p class="rsvp-thanks-sub" data-cfg="text.rsvpAcceptSub"></p>
+          </div>
+          <div class="rsvp-thanks rsvp-thanks--decline">
+            <p class="rsvp-thanks-title" data-cfg="text.rsvpDeclineTitle"></p>
+            <span class="rsvp-thanks-line" aria-hidden="true"></span>
+            <p class="rsvp-thanks-sub" data-cfg="text.rsvpDeclineSub"></p>
+          </div>
+
+          <button type="submit" class="rsvp-submit" id="rsvpSubmit">
+            <span><span data-cfg="text.sendLabel"></span><br><small data-cfg="text.sendSub"></small></span>
+            <span class="arrow" aria-hidden="true">&rarr;</span>
+          </button>
+
+          <div id="rsvpReady" class="rsvp__ready" role="status" aria-live="polite" hidden>
+            <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M20 11.6A8 8 0 0 1 8.2 18.7L4 20l1.3-4A8 8 0 1 1 20 11.6Z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+            <p class="rsvp__ready-title" data-cfg="text.rsvpReadyTitle"></p>
+            <p class="rsvp__ready-body" data-cfg="text.rsvpReadyBody"></p>
+            <a id="rsvpReopen" class="rsvp__ready-link" target="_blank" rel="noopener noreferrer">Open WhatsApp again</a>
+          </div>
+        </div>
       </form>
 
       <!-- Contact area (filled from js/config.js → rsvp.contacts) -->
       <div class="contact">
-        <div class="divider reveal" aria-hidden="true"><img src="assets/botanical/divider.svg" alt="" loading="lazy"></div>
-        <p class="eyebrow reveal" data-cfg="text.contactEyebrow"></p>
+        <div class="divider reveal" data-anim="unfold" aria-hidden="true"><img src="assets/botanical/divider.svg" alt="" loading="lazy"></div>
+        <p class="eyebrow reveal" data-anim="fade" style="--d:.15s" data-cfg="text.contactEyebrow"></p>
         <div id="contactGrid" class="contact__grid"></div>
       </div>
     </section>
 
     <!-- 5 · Closing message -->
     <section class="section final" id="thanks">
-      <div class="divider reveal" aria-hidden="true"><img src="assets/botanical/divider.svg" alt="" loading="lazy"></div>
-      <p class="thanks reveal r-fade" style="--d:.15s" data-cfg="text.thanks"></p>
-      <p class="withlove reveal r-fade" style="--d:.35s" data-cfg="text.withLove"></p>
-      <p class="display signoff reveal r-sign" style="--d:.55s"><span class="signoff__a" data-cfg="couple.first"></span><span class="signoff__amp"> &amp; </span><span class="signoff__b" data-cfg="couple.second"></span></p>
-      <img class="ornament reveal" data-parallax="0.04" style="--d:.75s" src="assets/botanical/sprig.svg" alt="" aria-hidden="true" loading="lazy" decoding="async" width="90" height="170">
+      <div class="divider reveal" data-anim="unfold" aria-hidden="true"><img src="assets/botanical/divider.svg" alt="" loading="lazy"></div>
+      <p class="thanks reveal" data-anim="fade" style="--d:.1s" data-cfg="text.thanks"></p>
+      <p class="withlove reveal" data-anim="fade" style="--d:.45s" data-cfg="text.withLove"></p>
+      <p class="signoff">
+        <span class="sig reveal" data-anim="mask" style="--d:.7s"><span class="mask__in" data-cfg="couple.first"></span></span>
+        <span class="sig-amp reveal" data-anim="fade" style="--d:.95s">&amp;</span>
+        <span class="sig reveal" data-anim="mask" style="--d:1.05s"><span class="mask__in" data-cfg="couple.second"></span></span>
+      </p>
+      <img class="ornament reveal" data-anim="grow" data-parallax="0.04" style="--d:1.4s" src="assets/botanical/sprig.svg" alt="" aria-hidden="true" loading="lazy" decoding="async" width="90" height="170">
 
       <p id="credit" class="credit"></p>
     </section>

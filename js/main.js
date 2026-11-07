@@ -1,4 +1,4 @@
-/* Tharindu & Dinushma — invitation behaviour.
+/* Tharindu & Dinushma — invitation behaviour (v9).
    Sections: config binding · reveals · background · music · tap-to-open intro · countdown · RSVP · contacts */
 (function () {
   "use strict";
@@ -51,6 +51,8 @@
 
     var ph = get("text.messagePlaceholder");
     if (ph) $("#guestMessage").placeholder = ph;
+    var nph = get("text.namePlaceholder");
+    if (nph) $("#guestName").placeholder = nph;
 
     // Keep share/canonical URLs in step with config (crawlers read index.html itself — see README).
     if (cfg.site && cfg.site.url) {
@@ -69,42 +71,52 @@
   var revealsStarted = false;
   var bgCtl = null; // set by initBackground()
   var musicCtl = null; // set by initMusic()
+
+  // Wait (briefly) for the three type families, so the names never appear in a fallback face.
+  function afterFonts(cb) {
+    var done = false;
+    function go() { if (!done) { done = true; cb(); } }
+    if (!(document.fonts && document.fonts.load)) { go(); return; }
+    Promise.all([
+      document.fonts.load('400 1em "Pinyon Script"'),
+      document.fonts.load('500 1em "Cormorant Garamond"'),
+      document.fonts.load('italic 500 1em "Cormorant Garamond"'),
+      document.fonts.load('400 1em "Jost"')
+    ]).then(go, go);
+    setTimeout(go, 1200);   // never hold the invitation back for fonts
+  }
+
   function startReveals() {
     if (revealsStarted) return;
     revealsStarted = true;
-    if (bgCtl) bgCtl.start();   // the background video is requested only now, once the opening video is done
+    // The background video is requested and started only now, when the invitation is revealed.
+    if (bgCtl) bgCtl.start();
+    var hero = $(".hero");
     var els = $$(".reveal");
     if (reduceMotion || !("IntersectionObserver" in window)) {
       els.forEach(function (el) { el.classList.add("in"); });
+      if (hero) hero.classList.add("is-in");
       return;
     }
-    // Hero is on screen the moment the intro ends: reveal it directly (staggered by --d).
-    var heroEls = els.filter(function (el) { return !!el.closest(".hero"); });
+    // The hero is on screen the moment the intro ends: it plays as one staggered sequence (--d).
+    var heroEls = els.filter(function (el) { return el.closest(".hero"); });
     els = els.filter(function (el) { return !el.closest(".hero"); });
-
     var io = new IntersectionObserver(function (entries) {
       entries.forEach(function (e) {
         if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); }
       });
     }, { threshold: 0.18, rootMargin: "0px 0px -6% 0px" });
     els.forEach(function (el) { io.observe(el); });
-
-    // Let the display fonts settle first so the names never swap typeface mid-reveal
-    // (normally already loaded during the opening, so this adds no wait; capped at 700 ms).
-    var played = false;
-    function playHero() {
-      if (played) return;
-      played = true;
+    afterFonts(function () {
+      if (hero) hero.classList.add("is-in");          // 1 · the atmosphere
       requestAnimationFrame(function () {
-        requestAnimationFrame(function () { heroEls.forEach(function (el) { el.classList.add("in"); }); });
+        heroEls.forEach(function (el) { el.classList.add("in"); });   // 2 · photo, names, statement, date
       });
-    }
-    if (document.fonts && document.fonts.ready) { document.fonts.ready.then(playHero, playHero); setTimeout(playHero, 700); }
-    else playHero();
+    });
   }
 
   /* ------------------------------------------------------------------ *
-   * 2b. Looping background video (starts when the opening video fades)
+   * 2b. Looping background video (loads + starts when the invitation is revealed)
    * ------------------------------------------------------------------ */
   function initBackground() {
     var c = cfg.background;
@@ -124,8 +136,8 @@
     // Missing/broken file: quietly fall back to the plain ivory page.
     v.addEventListener("error", function () { bg.remove(); });
 
-    // The file is requested only when the invitation is revealed (start() below), so it
-    // never competes with the opening video. It is not touched by the opening tap.
+    // The file is requested only when the invitation is revealed (start() -> load()), so it can
+    // never compete with the opening poster or the opening video; it is played from the same moment.
     var loaded = false, on = false;
     function load() {
       if (loaded) return;
@@ -291,6 +303,13 @@
 
   /* ------------------------------------------------------------------ *
    * 3. Opening video
+   *    - the poster is in the markup, so it is the first thing painted
+   *    - once the poster has painted, the video is prepared quietly in the background
+   *      (src assigned ONCE, preload="auto", never autoplay) so it is usually buffered
+   *      before the guest taps
+   *    - the tap calls video.play() immediately — no timers, no waiting
+   *    - the poster stays until real frames are painted; a slow connection just shows
+   *      the poster a little longer, never a blank screen
    * ------------------------------------------------------------------ */
   function initIntro() {
     var intro = $("#intro");
@@ -313,6 +332,8 @@
     var skipBtn = $("#introSkip");
     var cfgV = cfg.video || {};
     var opened = false;    // the guest has tapped (set once — blocks duplicate taps)
+    var prepared = false;  // the video source has been assigned (exactly once)
+    var failed = false;    // the video file errored before the tap
     var started = false;   // the video is really rendering frames
     var finished = false;
     var timers = {};
@@ -356,6 +377,7 @@
       if (started || finished) return;
       started = true;
       clearTimeout(timers.stall);
+      clearTimeout(timers.slow);
       intro.classList.add("is-playing");
       if (musicCtl) musicCtl.showControl();
       if (isFinite(video.duration) && video.duration > 0) {
@@ -365,33 +387,57 @@
       timers.skip = setTimeout(function () { intro.classList.add("show-skip"); }, 1200);
     }
 
-    /* ---- Opening video: prepared in the background, played only on the tap ---- */
-    var srcAssigned = false;   // the source is assigned exactly once
-    var broken = false;        // the file failed before the tap -> tap goes straight to the fallback
-    var ready = false;         // enough data is buffered to play without a pause
+    /* ---- Poster: already in the markup; JS only corrects it if the config points elsewhere ---- */
+    if (cfgV.poster) {
+      poster.addEventListener("error", function () { intro.classList.add("no-poster"); });
+      var wanted = versioned(cfgV.poster);
+      if (poster.getAttribute("src") !== wanted) poster.src = wanted;
+    } else {
+      intro.classList.add("no-poster");
+    }
 
+    /* ---- Prepare the video (no playback): assign the source once, let the browser buffer ---- */
     video.muted = true;
     video.defaultMuted = true;
     video.playsInline = true;
     video.setAttribute("playsinline", "");
     video.setAttribute("webkit-playsinline", "");
+    video.removeAttribute("autoplay");
 
-    function prepareVideo() {
-      if (srcAssigned || !cfgV.src || reduceMotion) return;     // reduced motion never plays the film
-      var conn = navigator.connection;
-      if (conn && conn.saveData) return;                         // respect Data Saver: load on the tap instead
-      srcAssigned = true;
+    function prepare() {
+      if (prepared || !cfgV.src || reduceMotion) return;
+      prepared = true;
       video.preload = "auto";
-      video.src = versioned(cfgV.src);                           // assigning src starts the download; no autoplay
-    }
-    function afterFirstPaint(fn) {
-      requestAnimationFrame(function () { setTimeout(fn, 0); });
+      video.src = versioned(cfgV.src);   // the only place the source is ever assigned
     }
 
-    video.addEventListener("loadeddata", function () { ready = true; });
-    video.addEventListener("canplay", function () { ready = true; });
+    // Respect "Data Saver" / very slow links: don't pre-fetch there; the tap will load it.
+    var conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    var thrifty = !!(conn && (conn.saveData || /(^|-)2g$/.test(conn.effectiveType || "")));
+
+    function whenPosterPainted(cb) {
+      var fired = false;
+      function go() { if (fired) return; fired = true; cb(); }
+      if (poster.complete && poster.naturalWidth) go();
+      else { poster.addEventListener("load", go); poster.addEventListener("error", go); }
+      setTimeout(go, 2500);   // a missing poster must not hold the preparation back
+    }
+    if (!thrifty) {
+      whenPosterPainted(function () {
+        // two frames: the poster and the button are on screen before any video bytes are requested
+        requestAnimationFrame(function () {
+          requestAnimationFrame(function () {
+            if ("requestIdleCallback" in window) requestIdleCallback(prepare, { timeout: 1200 });
+            else setTimeout(prepare, 150);
+          });
+        });
+      });
+    }
+
+    /* ---- Video events (attached once; they matter only after the tap) ---- */
     video.addEventListener("playing", function onPlaying() {
       video.removeEventListener("playing", onPlaying);
+      if (!opened) return;
       // Wait for a real painted frame where the browser can tell us (so the poster
       // never fades onto a blank video); otherwise "playing" is good enough.
       if (video.requestVideoFrameCallback) {
@@ -403,29 +449,16 @@
         revealVideo();
       }
     });
-    video.addEventListener("playing", function () { clearTimeout(timers.wait); });
     video.addEventListener("ended", function () { if (opened) finish(); });
     video.addEventListener("error", function () {
-      if (!opened) { broken = true; return; }
+      failed = true;
+      if (!opened) return;                 // before the tap: remembered, handled by the tap
       if (started) finish(); else fallback();
     });
     video.addEventListener("waiting", function () {
       if (started) { clearTimeout(timers.wait); timers.wait = setTimeout(finish, 7000); } // long stall mid-video
     });
-
-    /* ---- Poster: shown immediately; if it can't load, the names show instead.
-       The video only starts downloading after the poster has painted. ---- */
-    var scheduled = false;
-    function schedulePrepare() { if (scheduled) return; scheduled = true; afterFirstPaint(prepareVideo); }
-    if (cfgV.poster) {
-      poster.addEventListener("load", schedulePrepare);
-      poster.addEventListener("error", function () { intro.classList.add("no-poster"); schedulePrepare(); });
-      poster.src = versioned(cfgV.poster);
-      if (poster.complete) schedulePrepare();
-    } else {
-      intro.classList.add("no-poster");
-      schedulePrepare();
-    }
+    video.addEventListener("playing", function () { clearTimeout(timers.wait); });
 
     /* ---- The tap ---- */
     openBtn.addEventListener("click", function () {
@@ -434,39 +467,36 @@
       openBtn.disabled = true;
       openBtn.setAttribute("aria-busy", "true");
       intro.classList.add("is-opening");
+      if (musicCtl) musicCtl.start();   // music begins with the tap (gentle fade-in); the opening video itself is silent
 
       // No video configured, or the guest prefers reduced motion: skip the film.
-      if (!cfgV.src || reduceMotion) {
-        label.textContent = "Opening\u2026";
-        if (musicCtl) musicCtl.start();
-        cfgV.src ? finish() : fallback();
-        return;
-      }
-      if (broken) {
-        label.textContent = "Opening\u2026";
-        if (musicCtl) musicCtl.start();
-        fallback();
-        return;
-      }
+      if (!cfgV.src || reduceMotion) { cfgV.src ? finish() : fallback(); return; }
+      if (failed) { fallback(); return; }
 
-      // Play inside the tap itself (this is what lets iOS/Android start it) — no delay, no timers.
-      prepareVideo();               // no-op when the source was already assigned during preloading
-      if (!srcAssigned) {           // Data Saver path: assign now, still inside the tap
-        srcAssigned = true;
-        video.preload = "auto";
-        video.src = versioned(cfgV.src);
-      }
-      if (video.currentTime > 0) video.currentTime = 0;
+      // Play inside the tap itself — this is what lets iOS/Android start it. If the video was
+      // prepared, this starts at once; if not, the source is assigned here (still only once).
+      prepare();
       var p = video.play();
       if (p && p.catch) {
-        p.catch(function () { if (!started) fallback(); });
+        p.catch(function () { if (!started && !finished) fallback(); });
       }
-      // Only if the clip is still buffering do we show the quiet "Opening…" state (poster stays visible).
-      if (!ready) label.textContent = "Opening\u2026";
-      if (musicCtl) musicCtl.start();   // music begins with the tap (gentle fade-in)
 
-      // Never leave the guest staring at a poster forever: give up on a video that never starts.
-      timers.stall = setTimeout(function () { if (!started) fallback(); }, 9000);
+      // Only if the video is slow to start does the button say so; the poster stays up meanwhile.
+      timers.slow = setTimeout(function () {
+        if (started || finished) return;
+        label.textContent = "Opening\u2026";
+        intro.classList.add("is-slow");
+      }, 900);
+      // Never leave the guest waiting for ever. A video that is still downloading gets one extension.
+      var lastEnd = 0;
+      (function watch(round) {
+        timers.stall = setTimeout(function () {
+          if (started || finished) return;
+          var end = video.buffered && video.buffered.length ? video.buffered.end(video.buffered.length - 1) : 0;
+          if (round < 2 && end > lastEnd) { lastEnd = end; watch(round + 1); return; }
+          fallback();
+        }, 8000);
+      })(0);
     });
 
     // Skip is offered only once the film is playing; Escape works the same way.
@@ -474,6 +504,13 @@
     document.addEventListener("keydown", function (e) {
       if (e.key === "Escape" && opened && !finished) finish();
     });
+
+    // Test/diagnostic hook (read-only state; no effect on behaviour)
+    window.__intro = { state: function () {
+      return { prepared: prepared, opened: opened, started: started, finished: finished, failed: failed,
+               readyState: video.readyState, networkState: video.networkState, paused: video.paused,
+               hasSrc: !!video.getAttribute("src") };
+    } };
   }
 
   /* ------------------------------------------------------------------ *
@@ -525,103 +562,261 @@
   }
 
   /* ------------------------------------------------------------------ *
-   * 5. RSVP -> WhatsApp
+   * 5. RSVP -> WhatsApp   (staged: choose → reply + details → confirmation → send)
+   *    CSS does all the motion; this code only flips data-stage / data-attendance on #rsvp.
+   *    Nothing is sent until the guest presses the WhatsApp button themselves.
    * ------------------------------------------------------------------ */
   function initRsvp() {
+    var section = $("#rsvp");
     var form = $("#rsvpForm");
-    var toWrap = $("#rsvpTo");
+    var sidesWrap = $("#rsvpTo");
     var nameEl = $("#guestName");
     var msgEl = $("#guestMessage");
-    var status = $("#rsvpStatus");
+    var statusEl = $("#rsvpStatus");
     var ready = $("#rsvpReady");
     var reopen = $("#rsvpReopen");
+    var nameStep = nameEl.closest(".rsvp-step");
+    var choiceBtns = $$(".rsvp-choice", form);
 
-    // Recipient choices from config
-    cfg.rsvp.contacts.forEach(function (c, i) {
-      var id = "to" + i;
-      var label = document.createElement("label");
-      label.className = "choice choice--pill";
-      label.innerHTML =
-        '<input type="radio" name="to" value="' + i + '" id="' + id + '"' + (i === 0 ? " checked" : "") + ">" +
-        "<span></span>";
-      var sp = label.querySelector("span");
-      sp.textContent = c.name;
-      if (c.role) { var sm = document.createElement("small"); sm.textContent = c.role; sp.appendChild(sm); }
-      toWrap.appendChild(label);
+    var attendance = null;   // "accept" | "decline"
+    var sideIndex = -1;      // index into cfg.rsvp.contacts
+    var stage = "choose";    // "choose" | "details" | "confirmed"
+    var revealedOnce = false;
+
+    // "RSVP with" choices come from config (one per contact)
+    var sideBtns = cfg.rsvp.contacts.map(function (c, i) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "rsvp-side";
+      b.setAttribute("role", "radio");
+      b.setAttribute("aria-checked", "false");
+      [["rsvp-side-label", c.side || ""], ["rsvp-side-name", c.name], ["rsvp-side-role", c.role || ""]].forEach(function (p) {
+        if (!p[1]) return;
+        var sp = document.createElement("span");
+        sp.className = p[0];
+        sp.textContent = p[1];
+        b.appendChild(sp);
+      });
+      b.addEventListener("click", function () {
+        sideIndex = i;
+        mark(sideBtns, b);
+        hideStatus();
+        maybeConfirm(true);
+      });
+      sidesWrap.appendChild(b);
+      return b;
     });
 
-    function attendance() {
-      var r = form.querySelector('input[name="attend"]:checked');
-      return r ? r.value : null;
+    function mark(btns, chosen) {
+      btns.forEach(function (b) { b.setAttribute("aria-checked", String(b === chosen)); });
+    }
+    function setStage(next) { stage = next; section.setAttribute("data-stage", next); }
+    function showStatus(msg) { statusEl.textContent = msg; statusEl.hidden = false; }
+    function hideStatus() { statusEl.hidden = true; statusEl.textContent = ""; }
+    function clearNeedsName() { nameStep.classList.remove("needs-name"); }
+
+    // A choice was made (or changed): acknowledge it and open the details.
+    choiceBtns.forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        attendance = btn.getAttribute("data-attendance");
+        mark(choiceBtns, btn);
+        hideStatus();
+        ready.hidden = true;
+        section.setAttribute("data-attendance", attendance);
+        section.setAttribute("data-tempo", revealedOnce ? "quick" : "full");
+        if (stage === "choose") setStage("details");
+        revealedOnce = true;
+      });
+    });
+
+    // Reveal "Your place is waiting." + the WhatsApp button (nothing is sent yet).
+    function confirm() {
+      setStage("confirmed");
+      // Nudge the page only if the button would be off-screen — never jump.
+      var cta = $("#rsvpSubmit");
+      var vh = window.innerHeight || document.documentElement.clientHeight || 0;
+      if (cta && vh) {
+        var over = cta.getBoundingClientRect().bottom - vh * 0.86;
+        if (over > 0) {
+          try { window.scrollBy({ top: over, left: 0, behavior: reduceMotion ? "auto" : "smooth" }); }
+          catch (err) { window.scrollBy(0, over); }
+        }
+      }
     }
 
-    var attendField = form.querySelector('input[name="attend"]').closest(".field");
-    function setError(msg, which) {
-      status.className = "rsvp__status" + (msg ? " is-error" : "");
-      status.textContent = msg;
-      if (msg) ready.hidden = true;
-      // soft, accessible marker on the field that needs attention
-      nameEl.closest(".field").classList.toggle("is-invalid", which === "name");
-      nameEl.setAttribute("aria-invalid", which === "name" ? "true" : "false");
-      attendField.classList.toggle("is-invalid", which === "attend");
+    // Choosing who to RSVP with is the last step: once a name is in, the confirmation follows.
+    function maybeConfirm(fromSide) {
+      if (stage !== "details" || !attendance || sideIndex < 0) return;
+      if (!nameEl.value.trim()) {
+        if (fromSide) { nameStep.classList.add("needs-name"); showStatus("Please add your name to continue."); }
+        return;
+      }
+      clearNeedsName();
+      hideStatus();
+      if (fromSide && document.activeElement && form.contains(document.activeElement) && document.activeElement.blur) {
+        document.activeElement.blur();
+      }
+      confirm();
     }
+
     nameEl.addEventListener("input", function () {
-      if (nameEl.closest(".field").classList.contains("is-invalid")) setError("");
+      if (nameEl.value.trim()) { clearNeedsName(); hideStatus(); }
+      if (!ready.hidden) ready.hidden = true;
     });
-
-    form.addEventListener("change", function (e) {
-      if (e.target.name === "attend") setError("");
-    });
-    form.addEventListener("input", function () { if (!ready.hidden) ready.hidden = true; });
-    form.addEventListener("change", function () { if (!ready.hidden) ready.hidden = true; });
+    nameEl.addEventListener("change", function () { maybeConfirm(false) });   // side picked first: reveal once the name is done
+    msgEl.addEventListener("input", function () { if (!ready.hidden) ready.hidden = true; });
 
     form.addEventListener("submit", function (e) {
       e.preventDefault();
 
       var guestName = nameEl.value.replace(/\s+/g, " ").trim();
-      var att = attendance();
+      var missing = [];
+      if (guestName.length < 2) missing.push("your name");
+      if (!attendance) missing.push("your attendance");
+      if (sideIndex < 0) missing.push("who to RSVP with");
+      if (missing.length) {
+        showStatus("Please add " + missing.join(", ") + " before sending your RSVP.");
+        if (guestName.length < 2) nameStep.classList.add("needs-name");
+        return;
+      }
+      hideStatus();
 
-      if (guestName.length < 2) { setError("Please enter your name.", "name"); nameEl.focus(); return; }
-      if (!att) { setError("Please let us know if you can join us.", "attend"); return; }
+      // (Enter pressed before the confirmation is showing: reveal it, send nothing yet.)
+      if (stage !== "confirmed") { confirm(); return; }
 
-      var contact = cfg.rsvp.contacts[parseInt(form.elements.to.value, 10) || 0];
-      var phone = L.normalizePhone(contact.phone, cfg.rsvp.countryCode);
-      var d = L.dateParts(cfg.event.dateTime, cfg.event.timeZone);
-
+      var contact = cfg.rsvp.contacts[sideIndex];
+      var partner = contact.name === cfg.couple.first ? cfg.couple.second : cfg.couple.first;
       var message = L.buildMessage({
         toName: contact.name,
+        partnerName: partner,
         guestName: guestName,
-        attending: att === "yes",
-        message: msgEl.value, // optional — may be blank
-        eventLine: d.weekday + ", " + d.day + " " + d.month + " " + d.year + " · " + cfg.venue.name + ", " + cfg.venue.area
+        attending: attendance === "accept",
+        message: msgEl.value   // optional — may be blank
       });
-      var url = L.buildWhatsAppUrl(phone, message);
+      var url = L.buildWhatsAppUrl(L.normalizePhone(contact.phone, cfg.rsvp.countryCode), message);
 
-      // Open WhatsApp (works from the submit tap on iOS/Android and on desktop).
+      // Quiet note under the button: the message is ready, but the RSVP is not complete until it is sent.
+      reopen.href = url;
+      ready.hidden = false;
+      ready.classList.remove("is-shown"); void ready.offsetWidth; ready.classList.add("is-shown");
+
+      // Phones / tablets: hand off in the SAME tab so the wa.me link launches the WhatsApp app
+      // (a script-opened new tab does not). Desktop: new tab, falling back to same-tab if blocked.
+      var touch = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+        (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+      if (touch) {
+        window.location.href = url;
+      } else {
+        var w = window.open(url, "_blank");
+        if (w) { try { w.opener = null; } catch (err) {} }
+        else { window.location.href = url; }
+      }
+    });
+  }
+
+  /* ------------------------------------------------------------------ *
+   * 5b. Families (text only) · Save the Date · hero dust · scroll progress
+   * ------------------------------------------------------------------ */
+  function initFamilies() {
+    var row = $("#familiesRow");
+    if (!row || !cfg.families) return;
+    cfg.families.forEach(function (f, i) {
+      var card = document.createElement("div");
+      card.className = "families__card reveal";
+      card.setAttribute("data-anim", "settle");
+      card.style.setProperty("--d", (0.1 + i * 0.16) + "s");
+      var mk = function (cls, text) { var p = document.createElement("p"); p.className = cls; p.textContent = text; return p; };
+      card.appendChild(mk("families__role", f.role || ""));
+      card.appendChild(mk("families__name", f.name));
+      card.appendChild(mk("families__relation", f.relation || ""));
+      var par = document.createElement("p");
+      par.className = "families__parents";
+      String(f.parents || "").split(/\s+&\s+/).forEach(function (part, k) {
+        if (k) { var amp = document.createElement("span"); amp.className = "families__amp"; amp.textContent = "&"; par.appendChild(amp); }
+        par.appendChild(document.createTextNode(part));
+      });
+      card.appendChild(par);
+      row.appendChild(card);
+    });
+  }
+
+  function initSaveDate() {
+    var btn = $("#saveDateBtn");
+    if (!btn || !cfg.calendar) return;
+    btn.addEventListener("click", function () {
+      var d = L.dateParts(cfg.event.dateTime, cfg.event.timeZone);
+      var place = cfg.venue.name + ", " + cfg.venue.area;
+      var ics = L.buildIcs({
+        startIso: cfg.event.dateTime,
+        timeZone: cfg.event.timeZone,
+        durationHours: cfg.calendar.durationHours,
+        title: cfg.calendar.title,
+        location: place,
+        description: cfg.calendar.description + "\n\n" + d.weekday + ", " + d.day + " " + d.month + " " + d.year + " · " + cfg.event.timeText + "\n" + place + "\nMap: " + cfg.venue.mapsUrl + (cfg.rsvp && cfg.rsvp.deadlineText ? "\n" + cfg.rsvp.deadlineText : ""),
+        url: cfg.site && cfg.site.url ? cfg.site.url : "",
+        uid: (cfg.couple.first + "-" + cfg.couple.second + "-" + cfg.event.dateTime.slice(0, 10)).toLowerCase().replace(/[^a-z0-9-]+/g, "") + "@wedding-invitation",
+        reminders: cfg.calendar.reminders
+      });
+      var blob = new Blob([ics], { type: "text/calendar;charset=utf-8" });
+      var url = URL.createObjectURL(blob);
       var a = document.createElement("a");
       a.href = url;
-      a.target = "_blank";
-      a.rel = "noopener noreferrer";
+      a.download = cfg.calendar.fileName || "wedding.ics";
       document.body.appendChild(a);
       a.click();
       a.remove();
+      setTimeout(function () { URL.revokeObjectURL(url); }, 1500);
 
-      // Quiet confirmation: the message is ready in WhatsApp, but nothing is sent until the guest presses Send.
-      setError("");
-      var warm = $("#rsvpWarm");
-      if (warm) warm.textContent = (att === "yes" ? cfg.text.rsvpWarmYes : cfg.text.rsvpWarmNo) || "";
-      reopen.href = url;
-      var sendBtn = form.querySelector('button[type="submit"]');
-      if (sendBtn && !reduceMotion) {
-        sendBtn.classList.remove("is-sent"); void sendBtn.offsetWidth; sendBtn.classList.add("is-sent");
-        setTimeout(function () { sendBtn.classList.remove("is-sent"); }, 1400);
-      }
-      ready.hidden = false;
-      ready.style.animation = "none"; void ready.offsetWidth; ready.style.animation = "";   // replay the soft entrance on every send
-      if (!reduceMotion && ready.scrollIntoView) {
-        setTimeout(function () { ready.scrollIntoView({ behavior: "smooth", block: "nearest" }); }, 120);
-      }
+      var sub = $(".savedate__sub", btn);
+      if (sub && !btn.classList.contains("is-added")) sub.setAttribute("data-was", sub.textContent);
+      if (sub && cfg.text.saveDateDone) sub.textContent = cfg.text.saveDateDone;
+      btn.classList.add("is-added");
+      clearTimeout(btn._t);
+      btn._t = setTimeout(function () {
+        btn.classList.remove("is-added");
+        if (sub && sub.getAttribute("data-was")) sub.textContent = sub.getAttribute("data-was");
+      }, 5200);
     });
+  }
+
+  // A handful of fine gold specks drifting up through the hero; paused whenever the hero is off-screen.
+  function initDust() {
+    var dust = $("#heroDust");
+    if (!dust || reduceMotion) return;
+    for (var i = 0; i < 16; i++) {
+      var sp = document.createElement("span");
+      var size = 2 + Math.random() * 3.4;
+      sp.style.setProperty("--l", (4 + Math.random() * 92).toFixed(1) + "%");
+      sp.style.setProperty("--s", size.toFixed(1) + "px");
+      sp.style.setProperty("--b", (size > 4 ? 6 : 2).toFixed(0) + "px");
+      sp.style.setProperty("--o", (0.5 + Math.random() * 0.45).toFixed(2));
+      sp.style.setProperty("--x", ((Math.random() - 0.5) * 70).toFixed(0) + "px");
+      sp.style.setProperty("--dur", (13 + Math.random() * 12).toFixed(1) + "s");
+      sp.style.setProperty("--dl", (-Math.random() * 20).toFixed(1) + "s");
+      dust.appendChild(sp);
+    }
+    var hero = $(".hero");
+    if (hero && "IntersectionObserver" in window) {
+      new IntersectionObserver(function (en) { dust.classList.toggle("is-paused", !en[0].isIntersecting); }).observe(hero);
+    }
+  }
+
+  function initScrollProgress() {
+    var wrap = $("#scrollProgress");
+    var bar = wrap && wrap.firstElementChild;
+    if (!bar) return;
+    var queued = false;
+    function update() {
+      queued = false;
+      var root = document.documentElement;
+      var max = root.scrollHeight - window.innerHeight;
+      var y = window.pageYOffset || root.scrollTop || 0;
+      bar.style.transform = "scaleX(" + (max > 0 ? Math.min(1, Math.max(0, y / max)) : 0).toFixed(4) + ")";
+      wrap.classList.toggle("on", y > 60 && !root.classList.contains("intro-active"));
+    }
+    window.addEventListener("scroll", function () { if (!queued) { queued = true; requestAnimationFrame(update); } }, { passive: true });
+    window.addEventListener("resize", update);
+    update();
   }
 
   /* ------------------------------------------------------------------ *
@@ -701,6 +896,10 @@
   musicCtl = initMusic();
   initCountdown();
   initRsvp();
+  initFamilies();
+  initSaveDate();
+  initDust();
+  initScrollProgress();
   initContacts();
   initParallax();
   initIntro();

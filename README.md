@@ -19,14 +19,14 @@ assets/botanical/   divider.svg (sprig divider) · sprig.svg (single eucalyptus 
 vercel.json         caching + security headers
 ```
 
-## Premium refinement (v9)
-Layered on v8 — no content, assets, RSVP flow, `logic.js`, `config.js` or `vercel.json` changed.
-- **Opening is immediate.** The poster paints first; *after* that paint `js/main.js` assigns the opening video's `src` once (`preload="auto"`), so the 2.48 MB file buffers while the guest looks at the poster. It never autoplays. The tap calls `video.play()` directly inside the click — no timer, no delay. If the clip is not buffered yet, the poster stays on screen with a quiet "Opening…" until real frames are painted. Data-Saver mode and reduced motion skip the preload.
-- **Bandwidth.** The background video is no longer requested on the tap; it loads and starts when the invitation is revealed (`bgCtl.start()` in `startReveals`). Music still begins only on the tap.
-- **Typography** (taken from the reference invitation): Playfair Display 600 for the names, headings, large date numeral, countdown numerals, venue and signature · Cormorant Garamond italic for supporting lines, the gold "and"/ampersand, time and sub-text · Montserrat for labels, buttons, the hero date and form text (small, tracked capitals). The `--display` / `--serif` / `--sans` tokens in `css/styles.css` hold the stacks.
-- **Choreography.** Hero: atmosphere → photograph → Tharindu (from the left) → "and" → Dinushma (from the right) → invitation line → date. Date: vertical wipe. Countdown: numbers in sequence. Venue: fade + settle. RSVP: comes into focus. Closing: names rise, ampersand warms in, a gold line draws. Only opacity / transform / clip-path (plus one small one-off blur on the RSVP form) are animated; all of it is off under *reduce motion*. Starting poses are the `.r-*` classes in `index.html` / `css/styles.css` (always scoped `:not(.in)`).
-- **Photograph.** `assets/photos/couple.jpg` is untouched. A CSS tonal lift (brightness / contrast / a hint of warmth + a soft screen veil) integrates the darker print with the ivory page — see `.portrait__photo` in `css/styles.css`.
-- **RSVP.** Underline grows on focus, labels deepen, choice cards pop when selected, errors ease in, the send icon nudges and the confirmation settles in.
+## v9 — premium experience refinement
+
+- **Immediate opening:** the poster is in the HTML; once it has painted, the 2.48 MB opening video is prepared quietly (`preload="auto"`, source assigned once, never autoplay). The tap calls `video.play()` straight away. The poster stays until real frames are painted. On Data Saver / 2G the pre-fetch is skipped and the tap loads it.
+- **Bandwidth:** the background video is requested only when the invitation is revealed (via the existing background controller), never at the tap. Music still starts only after the tap.
+- **Typography:** self-hosted Bodoni Moda / Cormorant Garamond / Jost; Pinyon Script removed.
+- **Motion:** a small system of different movements per element (mask rise for names, photo settle, line draw, divider unfold, sequential countdown, focus-in RSVP title, staggered form), all opacity/transform; botanicals sway very slightly; everything is switched off for `prefers-reduced-motion`.
+- **Photo:** original file untouched; a light warm grade and faint ivory matte are applied in CSS (`.portrait__photo`).
+- **RSVP micro-interactions:** sweep-fill choices, growing input underline, nudge + eased error message, staggered confirmation.
 
 ## Design refinements (v8)
 Everything is layered on the existing design; no content, assets or RSVP flow changed.
@@ -53,7 +53,7 @@ The single hero portrait is `assets/photos/couple.jpg` (path in `js/config.js �
 
 ## How the opening works
 1. The poster (`video.poster`) and a **Tap to Open Invitation** button appear straight away.
-2. The video is buffered quietly in the background after the poster paints, and is *played* only when the guest taps (never before). It starts from the beginning; the poster fades only once frames are really rendering; when it ends, the invitation appears.
+2. The video is not loaded or played until the guest taps. It starts from the beginning; the poster fades only once frames are really rendering; when it ends, the invitation appears.
 3. If the video can't load/play (or `video.src` is `""`), the elegant names fallback shows and — because the guest has already tapped — the invitation opens after `video.fallbackAutoOpenMs`.
 4. Guests with "reduce motion" switched on skip the film: the tap opens the invitation directly.
 5. Links that point at a section (e.g. `…/#rsvp`) skip the opening, which is handy for testing.
@@ -102,4 +102,20 @@ It fills in `og:url`, `og:image`, `twitter:image`, the canonical link and `site.
 Add `#rsvp` (or any `#section`) to the URL to skip the opening video.
 
 ## Typography
-Playfair Display for names, headings, numerals and venue · Cormorant Garamond (italic) for supporting lines · Montserrat for labels, buttons and form fields. All three load from Google Fonts in `index.html`.
+Pinyon Script for the couple's names, the "and" and the sign-off (the printed card is set in Edwardian Script ITC, a commercial font; Pinyon Script is the closest free match — to use the real thing, add your licensed `.woff2` to `assets/fonts/` and point the `--script` font stack in `css/styles.css` at it) · Cormorant Garamond for the date, venue, time, headings and statements · Jost for descriptions, labels, buttons and form fields · Bodoni Moda remains available as `--display`. All are self-hosted in `assets/fonts/` (latin subset) and declared in `css/styles.css`; no external font requests.
+
+
+## RSVP flow (v10)
+
+The RSVP is a staged flow: **choose** (Joyfully Accept / Regretfully Decline) → a warm reply appears and the details open (name, optional message, who to RSVP with) → once all three are filled, **"Your place is waiting."** and the **Send RSVP via WhatsApp** button appear. Nothing is sent until the guest presses that button and then Send inside WhatsApp.
+
+- All wording lives in `js/config.js → text` (and `rsvp.contacts[].side` for the "RSVP with" labels).
+- The WhatsApp message is written in `js/logic.js → buildMessage`: a note addressed to whichever of the couple the guest picked, e.g. *"Hello Tharindu, … I'm delighted to confirm that I'll be joining you and Dinushma for your wedding celebration. … — Guest Name"*.
+- On phones the button hands off in the same tab so the WhatsApp app opens; on desktop it opens a new tab.
+
+## What's new in v11
+
+- **Arched hero portrait** — hairline arch with a gold diamond, gold frame, ivory mat, a slow ray of champagne light travelling round the arch, a barely-there zoom on the photo and two eucalyptus sprigs at its feet. Styles: `css/styles.css` → "Couple portrait". The photo is never cropped.
+- **Before we say "I do" + Our Families** — wording in `js/config.js → text.families*`, names in `families` (Son of Mr & Mrs Perera · Daughter of Mr & Mrs Padhidiliyan).
+- **Save the Date** — downloads a calendar file (`.ics`) with the event (Sat 5 Dec 2026, 11:00 A.M., Ranowell Hotel) and **two reminders**: two days before, and on the day at 8:00 AM ("Today is the day!"). Edit title, length, reminder wording and times in `js/config.js → calendar`. Apple Calendar and Outlook apply the reminders; Google Calendar may use its own default reminders instead.
+- **Hero gold dust**, a **scroll hairline** along the top edge, and **corner brackets** that settle around the venue name.

@@ -34,6 +34,32 @@ window.WEDDING_CONFIG = {
     timeText: "From 11:00 A.M. onwards"
   },
 
+  /* ---- Families ----------------------------------------------------------
+     Shown under "Before we say I do". Each entry: role, name, relation ("Son of" /
+     "Daughter of") and parents. Use " & " between the parents' names.        */
+  families: [
+    { role: "Groom", name: "Tharindu", relation: "Son of",      parents: "Mr & Mrs Perera" },
+    { role: "Bride", name: "Dinushma", relation: "Daughter of", parents: "Mr & Mrs Padhidiliyan" }
+  ],
+
+  /* ---- Save the Date (calendar booking) ----------------------------------
+     The "Save the Date" button downloads a calendar file (.ics) that opens in
+     Apple Calendar / Outlook / most phone calendars with the event already filled in.
+     durationHours: how long the event block is (the card only says "from 11:00 A.M.").
+     reminders:     daysBefore + optional `at` ("HH:MM", event time zone).
+                    { daysBefore: 2 }              -> exactly two days before the start time
+                    { daysBefore: 0, at: "08:00" } -> on the day itself at 8:00 AM          */
+  calendar: {
+    title: "Tharindu & Dinushma’s Wedding",
+    fileName: "Tharindu-and-Dinushma-Wedding.ics",
+    durationHours: 5,
+    description: "Together with their families, Tharindu and Dinushma joyfully invite you to celebrate their wedding.",
+    reminders: [
+      { daysBefore: 2, message: "Two days to go! Tharindu & Dinushma’s wedding is this Saturday, 5 December — from 11:00 A.M. at Ranowell Hotel, Kochchikade." },
+      { daysBefore: 0, at: "08:00", message: "Today is the day! Tharindu & Dinushma’s wedding — from 11:00 A.M. at Ranowell Hotel, Kochchikade." }
+    ]
+  },
+
   /* ---- Venue ------------------------------------------------------------ */
   venue: {
     name: "Ranowell Hotel",
@@ -104,10 +130,11 @@ window.WEDDING_CONFIG = {
   rsvp: {
     deadlineText: "Kindly respond by 20 November 2026",
     countryCode: "94", // Sri Lanka — numbers starting with 0 are converted automatically
-    // `role` is shown in the contact area below the form.
+    // `side` is the small label on the "RSVP with" choice; `role` is shown in the contact area.
+    // The WhatsApp message is addressed to whoever the guest picks (see js/logic.js → buildMessage).
     contacts: [
-      { name: "Tharindu", role: "Groom", phone: "0710842583" },
-      { name: "Dinushma", role: "Bride", phone: "0763818147" }
+      { name: "Tharindu", role: "Groom", side: "Groom’s Side", phone: "0710842583" },
+      { name: "Dinushma", role: "Bride", side: "Bride’s Side", phone: "0763818147" }
     ]
   },
 
@@ -115,20 +142,47 @@ window.WEDDING_CONFIG = {
   text: {
     eyebrow: "Together with their families",
     invite: "Joyfully invite you to celebrate their wedding",
-    detailsEyebrow: "Save the date",
+    detailsEyebrow: "Join us on",
     countdownEyebrow: "Counting the days",
     countdownTitle: "Until we say “I do”",
     countdownDone: "Today is the day — see you at the celebration",
     rsvpEyebrow: "RSVP",
     rsvpTitle: "Will you join us?",
     swipe: "Swipe down",
-    messageLabel: "A Little Message",
-    messagePlaceholder: "Leave a little message for the couple...",
+    // Before we say "I do" + families
+    familiesEyebrow: "Before we say",
+    familiesHeading: "“I Do”…",
+    familiesQuote: "From two separate journeys to one beautiful beginning — we are grateful to share this moment with the people who mean the most to us.",
+    familiesTogether: "Together with our families",
+    familiesInvite: "We invite you to celebrate with us as we begin this beautiful chapter together.",
+    // Save the Date
+    saveDate: "Save the Date",
+    saveDateSub: "Add to calendar · with reminders",
+    saveDateDone: "Added — reminders included",
+    // RSVP — step 1: the choice
+    rsvpChoiceLabel: "Will you be joining us?",
+    rsvpTapHint: "Tap to reply",
+    // RSVP — step 2: shown right after a choice is made, then the details open
+    rsvpAcceptEcho: "We’re so happy to have you with us.",
+    rsvpAcceptAsk: "May we know who’s joining us?",
+    rsvpDeclineEcho: "We’ll miss celebrating this moment with you.",
+    rsvpDeclineAsk: "May we know who you are?",
+    nameLabel: "Your Name",
+    namePlaceholder: "Enter your full name",
+    messageLabel: "A Message for Tharindu & Dinushma",
+    messagePlaceholder: "Write a few words…",
+    optional: "(optional)",
+    rsvpWithLabel: "RSVP With",
+    // RSVP — step 3: confirmation, then the WhatsApp button
+    rsvpAcceptTitle: "Your place is waiting.",
+    rsvpAcceptSub: "Thank you for being part of this moment.",
+    rsvpDeclineTitle: "Thank you for letting us know.",
+    rsvpDeclineSub: "We’ll be thinking of you on our day.",
+    sendLabel: "Send RSVP",
+    sendSub: "via WhatsApp",
     contactEyebrow: "Prefer to reach us directly?",
     thanks: "Your presence will make our special day even more memorable.",
     withLove: "With love and gratitude,",
-    rsvpWarmYes: "How wonderful — we can’t wait to celebrate with you.",
-    rsvpWarmNo: "We will miss you, and thank you for letting us know.",
     rsvpReadyTitle: "Your WhatsApp message is ready.",
     rsvpReadyBody: "Please press Send to confirm your response. Your RSVP is not complete until the message is sent."
   },
