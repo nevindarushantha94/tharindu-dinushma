@@ -37,7 +37,16 @@
     map.href = cfg.venue.mapsUrl;
 
     var credit = $("#credit");
-    if (cfg.credit) credit.textContent = cfg.credit; else credit.hidden = true;
+    if (cfg.credit) {
+      if (cfg.creditUrl) {
+        var a = document.createElement("a");
+        a.className = "credit__link";
+        a.href = cfg.creditUrl; a.target = "_blank"; a.rel = "noopener noreferrer";
+        a.setAttribute("aria-label", cfg.credit + " — contact on WhatsApp");
+        a.textContent = cfg.credit;
+        credit.textContent = ""; credit.appendChild(a);
+      } else credit.textContent = cfg.credit;
+    } else credit.hidden = true;
 
     $("#heroDate").textContent = d.weekday + ", " + d.day + " " + d.month + " " + d.year;
 

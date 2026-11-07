@@ -119,3 +119,10 @@ The RSVP is a staged flow: **choose** (Joyfully Accept / Regretfully Decline) �
 - **Before we say "I do" + Our Families** — wording in `js/config.js → text.families*`, names in `families` (Son of Mr & Mrs Perera · Daughter of Mr & Mrs Padhidiliyan).
 - **Save the Date** — downloads a calendar file (`.ics`) with the event (Sat 5 Dec 2026, 11:00 A.M., Ranowell Hotel) and **two reminders**: two days before, and on the day at 8:00 AM ("Today is the day!"). Edit title, length, reminder wording and times in `js/config.js → calendar`. Apple Calendar and Outlook apply the reminders; Google Calendar may use its own default reminders instead.
 - **Hero gold dust**, a **scroll hairline** along the top edge, and **corner brackets** that settle around the venue name.
+
+## What's new in v12
+- Hero and closing names: the script letters no longer peek out before their reveal animation.
+- Details order: date → time → Save the Date → venue → View Location.
+- "View Location" now uses the same engraved-card button as "Save the Date" (same size and look; sub-line in js/config.js → venue.mapsSub).
+- Closing signature stacks as Name / & / Name on every screen size.
+- "Design by Nevinda Rushantha" opens WhatsApp (js/config.js → creditUrl).

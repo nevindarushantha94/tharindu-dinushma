@@ -283,8 +283,8 @@ main { position: relative; z-index: 1; }
 
   /* mask: the container is always there, its text rises into view */
   html.js .reveal[data-anim="mask"] { opacity: 1; transform: none; }
-  html.js .reveal[data-anim="mask"] > .mask__in { transform: translateY(112%); }
-  html.js .reveal[data-anim="mask"].in > .mask__in { transform: none; transition: transform 1.35s var(--ease-expo) var(--d, 0s); }
+  html.js .reveal[data-anim="mask"] > .mask__in { transform: translateY(150%); opacity: 0; }
+  html.js .reveal[data-anim="mask"].in > .mask__in { transform: none; opacity: 1; transition: transform 1.35s var(--ease-expo) var(--d, 0s), opacity .01s linear var(--d, 0s); }
 
   /* side */
   html.js .reveal[data-anim="side-l"] { transform: translateX(-20px); }
@@ -550,19 +550,7 @@ main { position: relative; z-index: 1; }
 .pin { display: block; margin: 0 auto .9rem; color: var(--gold); }
 .venue { margin: 0; font: 600 clamp(1.7rem, 7.2vw, 2.3rem)/1.2 var(--serif); letter-spacing: .08em; text-indent: .08em; text-transform: uppercase; }
 .area { margin: .6rem 0 1rem; font: 400 .8rem/1.6 var(--sans); letter-spacing: .22em; text-indent: .22em; text-transform: uppercase; color: var(--ink-soft); }
-/* small elegant text link — generous tap area, thin gold underline */
-.maplink {
-  display: inline-flex; align-items: center; gap: .45rem;
-  min-height: 44px; padding: .5rem .6rem;
-  font: 500 .76rem/1 var(--sans); letter-spacing: .18em; text-transform: uppercase; text-decoration: none;
-  color: var(--sage-deep);
-  -webkit-tap-highlight-color: transparent; touch-action: manipulation;
-}
-.maplink span { padding-bottom: .35rem; background: linear-gradient(var(--gold), var(--gold)) 0 100% / 100% 1px no-repeat; transition: background-size var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease); }
-.maplink svg { color: var(--gold); transition: transform var(--dur-fast) var(--ease); margin-bottom: .3rem; }
-@media (hover: hover) { .maplink:hover { color: var(--ink); } .maplink:hover svg { transform: translate(2px, -2px); } }
-.maplink:active { opacity: .7; }
-.maplink.reveal.in { transition-property: opacity, transform, color; }
+/* "View Location" shares the engraved-card look of .savedate (rules further down) */
 
 /* Countdown */
 .countdown { background: linear-gradient(transparent, rgba(250, 247, 239, .32) 35%, rgba(250, 247, 239, .32) 65%, transparent); }
@@ -836,8 +824,8 @@ main { position: relative; z-index: 1; }
 .thanks { text-wrap: balance; margin: 0 auto; max-width: 21rem; font: italic 500 clamp(1.4rem, 5.8vw, 1.75rem)/1.5 var(--serif); color: var(--ink); }
 .withlove { margin: 2.4rem 0 .5rem; font: 500 1.15rem/1.4 var(--serif); letter-spacing: .06em; color: var(--ink-soft); }
 .signoff {
-  margin: 0; display: flex; flex-wrap: wrap; justify-content: center; align-items: baseline;
-  column-gap: .32em; row-gap: 0;
+  margin: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  row-gap: .02em;
   font: 400 clamp(2.4rem, 11vw, 4rem)/1.25 var(--script);
   color: var(--sage-deep);
 }
@@ -845,6 +833,9 @@ main { position: relative; z-index: 1; }
 .signoff .sig-amp { font-family: var(--script); font-weight: 400; font-size: .72em; color: var(--gold-deep); }
 .ornament { display: block; margin: 1.6rem auto 0; width: 44px; height: auto; translate: 0 var(--py, 0px); }
 .ornament.reveal.in { opacity: .6; }
+.credit__link { color: inherit; text-decoration: none; padding: .5rem .4rem; border-bottom: 1px solid rgba(184, 153, 91, .55); -webkit-tap-highlight-color: transparent; transition: color var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease); }
+.credit__link:active { color: var(--gold-deep); border-color: var(--gold); }
+@media (hover: hover) { .credit__link:hover { color: var(--gold-deep); border-color: var(--gold); } }
 .credit { margin: 2.8rem 0 0; font: 400 .68rem/1.6 var(--sans); letter-spacing: .2em; text-indent: .2em; text-transform: uppercase; color: var(--ink-soft); opacity: .75; }
 
 /* The `font` shorthand resets numeric figures, so lining numerals are re-applied where dates and numbers appear */
@@ -1006,6 +997,8 @@ main { position: relative; z-index: 1; }
 @keyframes tickDraw { from { stroke-dashoffset: 14; } to { stroke-dashoffset: 0; } }
 .savedate__label { display: block; font: 500 .76rem/1.3 var(--sans); letter-spacing: .24em; text-transform: uppercase; }
 .savedate__sub { display: block; margin-top: .25rem; font: italic 500 .98rem/1.3 var(--serif); letter-spacing: .02em; color: var(--ink-soft); }
+.savedate { width: min(100%, 20.5rem); box-sizing: border-box; justify-content: center; text-decoration: none; }
+.maplink.reveal.in { transition-property: opacity, transform; }
 .savedate:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
 @media (hover: hover) { .savedate:hover { box-shadow: inset 0 0 0 3px rgba(255, 251, 240, .85), inset 0 0 0 4px rgba(184, 153, 91, .6), 0 16px 34px -18px rgba(79, 104, 79, .65); } }
 

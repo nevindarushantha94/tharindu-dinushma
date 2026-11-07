@@ -65,6 +65,7 @@ window.WEDDING_CONFIG = {
     name: "Ranowell Hotel",
     area: "Kochchikade",
     mapsLabel: "View Location",
+    mapsSub: "Open in Google Maps",
     // Opens the venue in Google Maps. Paste an exact "Share" link here if you
     // have one from Google Maps — it will be more precise than a search.
     mapsUrl: "https://www.google.com/maps/search/?api=1&query=Ranowell+Hotel+Kochchikade"
@@ -188,5 +189,7 @@ window.WEDDING_CONFIG = {
   },
 
   /* Tiny credit line at the very bottom. Set to "" to hide. */
-  credit: "Design by Nevinda Rushantha"
+  credit: "Design by Nevinda Rushantha",
+  /* The credit is a tappable link that opens a WhatsApp chat with the designer. */
+  creditUrl: "https://wa.me/94766527700"
 };
