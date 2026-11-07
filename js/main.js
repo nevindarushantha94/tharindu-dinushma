@@ -33,20 +33,56 @@
     $("#dMonth").textContent = d.month;
     $("#dYear").textContent = d.year;
 
+    // Directions: explicit link > exact coordinates > name + address (see js/config.js → venue)
+    var v = cfg.venue;
+    if (!v.mapsUrl) {
+      var dest = (v.coordinates && String(v.coordinates).replace(/\s+/g, "")) || v.mapsDestination || (v.name + ", " + v.area);
+      v.mapsUrl = "https://www.google.com/maps/dir/?api=1&destination=" + encodeURIComponent(dest) + "&travelmode=driving";
+    }
     var map = $("#mapLink");
-    map.href = cfg.venue.mapsUrl;
+    map.href = v.mapsUrl;
 
     var credit = $("#credit");
     if (cfg.credit) {
+      var NS = "http://www.w3.org/2000/svg";
+      var link = document.createElement(cfg.creditUrl ? "a" : "span");
+      link.className = "credit__link";
       if (cfg.creditUrl) {
-        var a = document.createElement("a");
-        a.className = "credit__link";
-        a.href = cfg.creditUrl; a.target = "_blank"; a.rel = "noopener noreferrer";
-        a.setAttribute("aria-label", cfg.credit + " — contact on WhatsApp");
-        a.textContent = cfg.credit;
-        credit.textContent = ""; credit.appendChild(a);
-      } else credit.textContent = cfg.credit;
+        link.href = cfg.creditUrl; link.target = "_blank"; link.rel = "noopener noreferrer";
+        link.setAttribute("aria-label", (cfg.creditLead || "").replace("♥", "with love") + " " + cfg.credit + " — message on WhatsApp");
+      }
+      var lead = document.createElement("span");
+      lead.className = "credit__lead";
+      (cfg.creditLead || "").split("♥").forEach(function (part, i) {
+        if (i) {
+          var h = document.createElementNS(NS, "svg");
+          h.setAttribute("viewBox", "0 0 24 24"); h.setAttribute("class", "credit__heart"); h.setAttribute("aria-hidden", "true");
+          var hp = document.createElementNS(NS, "path");
+          hp.setAttribute("d", "M12 21s-7.5-4.6-9.4-9.3C1.2 8.3 3 5 6.2 5c2 0 3.4 1.1 4.2 2.4h3.2C14.4 6.1 15.8 5 17.8 5 21 5 22.8 8.3 21.4 11.7 19.5 16.4 12 21 12 21Z");
+          hp.setAttribute("fill", "currentColor"); h.appendChild(hp); lead.appendChild(h);
+        }
+        if (part) lead.appendChild(document.createTextNode(part));
+      });
+      var nm = document.createElement("span");
+      nm.className = "credit__name";
+      nm.appendChild(document.createTextNode(cfg.credit));
+      if (cfg.creditUrl) {
+        var w = document.createElementNS(NS, "svg");
+        w.setAttribute("viewBox", "0 0 24 24"); w.setAttribute("class", "credit__wa"); w.setAttribute("aria-hidden", "true");
+        var wp = document.createElementNS(NS, "path");
+        wp.setAttribute("d", "M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.29-1.39a9.9 9.9 0 0 0 4.75 1.21h.01c5.46 0 9.91-4.45 9.91-9.91C21.96 6.45 17.5 2 12.04 2Zm5.8 14.1c-.24.68-1.42 1.3-1.96 1.35-.5.05-1.13.07-1.82-.11-.42-.13-.96-.31-1.65-.61-2.9-1.25-4.79-4.17-4.93-4.36-.14-.19-1.18-1.57-1.18-3s.75-2.12 1.01-2.41c.26-.29.57-.36.76-.36h.55c.18 0 .42-.07.65.5.24.58.82 2.01.89 2.16.07.14.12.31.02.5-.1.19-.14.31-.29.48-.14.17-.3.38-.43.51-.14.14-.29.29-.12.58.17.29.74 1.22 1.59 1.97 1.09.97 2.01 1.27 2.3 1.41.29.14.46.12.63-.07.17-.19.72-.84.91-1.13.19-.29.38-.24.65-.14.26.1 1.68.79 1.97.94.29.14.48.22.55.34.07.12.07.7-.17 1.38Z");
+        wp.setAttribute("fill", "currentColor"); w.appendChild(wp); nm.appendChild(w);
+      }
+      link.appendChild(lead); link.appendChild(nm);
+      credit.textContent = ""; credit.appendChild(link);
     } else credit.hidden = true;
+
+    // Closing line: venue · date (from the same settings as everything else)
+    var cl = $("#closingLine");
+    if (cl) {
+      if (cfg.closingLine === false) cl.hidden = true;
+      else cl.textContent = cfg.venue.name + "  ·  " + d.day.toString().padStart(2, "0") + " . " + (new Date(cfg.event.dateTime).toLocaleString("en-GB", { month: "2-digit", timeZone: cfg.event.timeZone })) + " . " + d.year;
+    }
 
     $("#heroDate").textContent = d.weekday + ", " + d.day + " " + d.month + " " + d.year;
 
@@ -223,6 +259,19 @@
       })(t0);
     }
 
+    // Small "Music on / off" label that appears beside the button for a moment.
+    var hintEl = $("#musicHint"), hintTimer = 0;
+    function hint(on, ms, delay) {
+      if (!hintEl) return;
+      clearTimeout(hintTimer);
+      hintTimer = setTimeout(function () {
+        if (!btn.classList.contains("is-visible")) return;
+        hintEl.textContent = (cfg.text && (on ? cfg.text.musicOn : cfg.text.musicOff)) || (on ? "Music on" : "Music off");
+        hintEl.classList.add("is-shown");
+        hintTimer = setTimeout(function () { hintEl.classList.remove("is-shown"); }, ms || 2200);
+      }, delay || 0);
+    }
+
     function setUi(on) {
       btn.setAttribute("aria-pressed", on ? "true" : "false");
       btn.setAttribute("aria-label", on ? "Mute music" : (loaded ? "Unmute music" : "Play background music"));
@@ -286,7 +335,7 @@
       fadeTo(0, fadeOut, function () { if (!wantOn) { try { audio.pause(); } catch (e) {} } });
     }
 
-    btn.addEventListener("click", function () { if (wantOn) off(); else on(); });
+    btn.addEventListener("click", function () { if (wantOn) { off(); hint(false, 1800); } else { on(); hint(true, 1800); } });
 
     // Respect the device: pause when the page is hidden, pick up again (if still wanted) when it returns.
     document.addEventListener("visibilitychange", function () {
@@ -306,6 +355,7 @@
         if (failed) return;
         btn.hidden = false;
         requestAnimationFrame(function () { requestAnimationFrame(function () { btn.classList.add("is-visible"); }); });
+        if (wantOn) hint(true, 3200, 1500);   // first time the control appears: say that the music is playing
       }
     };
   }
@@ -473,6 +523,7 @@
     openBtn.addEventListener("click", function () {
       if (opened) return;           // no duplicate clicks / repeated playback
       opened = true;
+      try { if (navigator.vibrate) navigator.vibrate(14); } catch (e) {}   // a tiny tap on Android; ignored elsewhere
       openBtn.disabled = true;
       openBtn.setAttribute("aria-busy", "true");
       intro.classList.add("is-opening");
@@ -525,6 +576,34 @@
   /* ------------------------------------------------------------------ *
    * 4. Countdown
    * ------------------------------------------------------------------ */
+  /* Small "Scroll" hints at the end of the first sections: they appear once their section has
+     been revealed and fade away as soon as the guest scrolls on. */
+  function initScrollCues() {
+    var cues = $$(".cue");
+    if (!cues.length) return;
+    var armed = [];
+    function arm(c) {
+      if (c._armed) return; c._armed = true;
+      c._y = window.pageYOffset || document.documentElement.scrollTop || 0;
+      armed.push(c);
+    }
+    if ("IntersectionObserver" in window) {
+      var io = new IntersectionObserver(function (en) {
+        en.forEach(function (e) { if (e.isIntersecting) { arm(e.target); io.unobserve(e.target); } });
+      }, { threshold: 0.9 });
+      cues.forEach(function (c) { io.observe(c); });
+    } else cues.forEach(arm);
+    var ticking = false;
+    window.addEventListener("scroll", function () {
+      if (ticking) return; ticking = true;
+      requestAnimationFrame(function () {
+        ticking = false;
+        var y = window.pageYOffset || document.documentElement.scrollTop || 0;
+        armed.forEach(function (c) { if (Math.abs(y - c._y) > 70) c.classList.add("is-gone"); });
+      });
+    }, { passive: true });
+  }
+
   function initCountdown() {
     var target = new Date(cfg.event.dateTime).getTime();
     var box = $("#countdown");
@@ -536,22 +615,27 @@
     };
     var done = $("#countdownDone");
     var last = {};
+    var phase = 0;           // 0 waiting to be seen · 1 counting up · 2 live
+    var latest = null;       // newest numbers, kept while the count-up plays
 
     function render() {
       var p = L.countdownParts(target, Date.now());
       if (p.done) {
+        phase = 2;
         box.classList.add("is-done");
         done.hidden = false;
         Object.keys(units).forEach(function (k) { units[k].textContent = "00"; });
         clearInterval(timer);
         return;
       }
+      var nums = { days: p.days, hours: p.hours, minutes: p.minutes, seconds: p.seconds };
       var vals = {
         days: L.pad(p.days, 2),
         hours: L.pad(p.hours),
         minutes: L.pad(p.minutes),
         seconds: L.pad(p.seconds)
       };
+      if (phase < 2) { latest = nums; return; }       // numbers are written by the count-up until it ends
       Object.keys(vals).forEach(function (k) {
         if (last[k] === vals[k]) return;
         units[k].textContent = vals[k];
@@ -564,6 +648,28 @@
         last[k] = vals[k];
       });
     }
+
+    // The numbers count up from zero once, the first time the countdown comes into view.
+    function countUp() {
+      if (phase) return;
+      if (reduceMotion || !latest) { phase = 2; render(); return; }
+      phase = 1;
+      var t0 = performance.now(), dur = 1700;
+      (function step(now) {
+        var k = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - k, 3);
+        Object.keys(units).forEach(function (u) {
+          units[u].textContent = L.pad(Math.round(latest[u] * e), u === "days" ? 2 : 2);
+        });
+        if (k < 1) { requestAnimationFrame(step); return; }
+        phase = 2; last = {}; render();
+      })(t0);
+    }
+    if ("IntersectionObserver" in window) {
+      var seen = new IntersectionObserver(function (en) {
+        if (en[0].isIntersecting) { seen.disconnect(); setTimeout(countUp, 450); }
+      }, { threshold: 0.4 });
+      seen.observe(box);
+    } else { phase = 2; }
 
     var timer = setInterval(render, 1000);
     render();
@@ -909,6 +1015,7 @@
   initSaveDate();
   initDust();
   initScrollProgress();
+  initScrollCues();
   initContacts();
   initParallax();
   initIntro();

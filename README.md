@@ -126,3 +126,17 @@ The RSVP is a staged flow: **choose** (Joyfully Accept / Regretfully Decline) �
 - "View Location" now uses the same engraved-card button as "Save the Date" (same size and look; sub-line in js/config.js → venue.mapsSub).
 - Closing signature stacks as Name / & / Name on every screen size.
 - "Design by Nevinda Rushantha" opens WhatsApp (js/config.js → creditUrl).
+
+## What's new in v13
+- "Save the Date" and "View Location" are now sage-green pills with ivory text and a gold glow, matching the selected "Joyfully Accept" button.
+
+## What's new in v14
+- Directions button: opens Google's directions link (navigation from the guest's location, opens the Maps app). Add the hotel's exact pin in js/config.js → venue.coordinates ("lat,lng") for full precision.
+- Music button shows a small "Music on / off" label.
+- The countdown numbers count up from zero once, when first seen.
+- Credit: "Designed with ♥ by" over "Nevinda Rushantha" with a WhatsApp icon (tap opens WhatsApp).
+- Small "Scroll" hints at the end of the first sections, a light vibration on opening (Android), and a venue · date closing line.
+- Light colour scheme declared so dark-mode browsers don't recolour the form.
+
+## What's new in v15
+- Directions button now uses the hotel's exact Google Maps pin (js/config.js → venue.coordinates).

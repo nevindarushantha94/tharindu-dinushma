@@ -64,11 +64,17 @@ window.WEDDING_CONFIG = {
   venue: {
     name: "Ranowell Hotel",
     area: "Kochchikade",
-    mapsLabel: "View Location",
-    mapsSub: "Open in Google Maps",
-    // Opens the venue in Google Maps. Paste an exact "Share" link here if you
-    // have one from Google Maps — it will be more precise than a search.
-    mapsUrl: "https://www.google.com/maps/search/?api=1&query=Ranowell+Hotel+Kochchikade"
+    mapsLabel: "Get Directions",
+    mapsSub: "Navigate in Google Maps",
+    // The button opens Google's directions link: it starts navigation from the guest's own
+    // location and opens the Maps app on phones. Where it points, in order of priority:
+    //   1. mapsUrl       - paste a full Google Maps link here to override everything
+    //   2. coordinates   - exact pin as "latitude,longitude" (most precise; right-click the
+    //                      hotel in Google Maps and tap the numbers at the top to copy them)
+    //   3. mapsDestination - hotel name + address (used until a pin is added)
+    mapsUrl: "",
+    coordinates: "7.2686897,79.8615583",   // exact pin of Ranowell Hotel (from the shared Google Maps link)
+    mapsDestination: "Ranowell Hotel, 162/4 Chilaw - Colombo Main Road, Negombo"
   },
 
   /* ---- Couple photograph (hero) -----------------------------------------
@@ -150,6 +156,9 @@ window.WEDDING_CONFIG = {
     rsvpEyebrow: "RSVP",
     rsvpTitle: "Will you join us?",
     swipe: "Swipe down",
+    scrollCue: "Scroll",
+    musicOn: "Music on",
+    musicOff: "Music off",
     // Before we say "I do" + families
     familiesEyebrow: "Before we say",
     familiesHeading: "“I Do”…",
@@ -188,8 +197,12 @@ window.WEDDING_CONFIG = {
     rsvpReadyBody: "Please press Send to confirm your response. Your RSVP is not complete until the message is sent."
   },
 
-  /* Tiny credit line at the very bottom. Set to "" to hide. */
-  credit: "Design by Nevinda Rushantha",
-  /* The credit is a tappable link that opens a WhatsApp chat with the designer. */
+  /* Closing line above the credit: venue + date are taken from the settings above. Set to false to hide. */
+  closingLine: true,
+
+  /* Designer credit at the very bottom. "creditLead" shows a small heart where ♥ is written.
+     The name is a tappable link that opens WhatsApp. Set `credit` to "" to hide the whole credit. */
+  creditLead: "Designed with ♥ by",
+  credit: "Nevinda Rushantha",
   creditUrl: "https://wa.me/94766527700"
 };
