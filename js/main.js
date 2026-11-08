@@ -1,4 +1,4 @@
-/* Tharindu & Dinushma — invitation behaviour (v9).
+/* Tharindu & Dinushma — invitation behaviour (v19).
    Sections: config binding · reveals · background · music · tap-to-open intro · countdown · RSVP · contacts */
 (function () {
   "use strict";
@@ -134,6 +134,8 @@
   function startReveals() {
     if (revealsStarted) return;
     revealsStarted = true;
+    var dust = $("#heroDust");
+    if (dust) dust.style.visibility = "";        // the hero's gold specks join the hero once the intro has gone
     // The background video is requested and started only now, when the invitation is revealed.
     if (bgCtl) bgCtl.start();
     var hero = $(".hero");
@@ -206,13 +208,16 @@
   }
 
   /* ------------------------------------------------------------------ *
-   * 2c. Background music (one <audio>, started by the guest's tap)
-   *     - never autoplays; the first play() happens inside the tap
-   *     - fades in / out; mute = fade out + pause, unmute = resume + fade in
-   *     - the same element keeps playing through the intro -> invitation
-   *       change, so it is never restarted or duplicated
-   *     - iOS Safari ignores audio.volume, so there the fade goes through a
-   *       Web Audio gain node; if that is unavailable it simply plays at full
+   * 2c. Background music (one <audio>, started inside the guest's tap)
+   *     - never autoplays: the ONLY play() that depends on a gesture is made synchronously inside
+   *       the "Tap to Open Invitation" tap, at level 0, so it is silent under the opening film
+   *     - at the hand-over the track is rewound to 0:00 and faded in; play() is NOT called again
+   *       when that silent start is confirmed to be running
+   *     - every play() promise is handled; if the browser refuses, the control shows "off" and the
+   *       guest's next tap on the music button starts it (no hidden tap-anywhere listeners)
+   *     - mute = fade out + pause, unmute = resume + fade in; a mute made during the film is kept
+   *     - iOS Safari ignores audio.volume, so there the level goes through a Web Audio gain node;
+   *       with neither, the silent start uses audio.muted instead
    * ------------------------------------------------------------------ */
   function initMusic() {
     var c = cfg.music;
@@ -226,7 +231,10 @@
     var fadeOut = c.fadeOutMs > 0 ? c.fadeOutMs : 900;
     var wantOn = false;      // the guest's intent: sound on (true) or muted (false)
     var held = false;        // true while the opening video's own sound is playing: music waits
-    var primed = false;      // the audio element has been "unlocked" by the guest's tap
+    var primed = false;      // begin() has run (the silent start was requested inside the guest's tap)
+    var startState = "idle"; // idle | starting | running | blocked | stopped  (see begin() / takeOver())
+    var startToken = 0;      // identifies the newest play request, so stale promise results are ignored
+    var mutedStart = false;  // silent start done with audio.muted (only where neither volume nor gain can hold 0)
     var prefCb = null;       // while held: told when the guest mutes / unmutes
     var loaded = false, failed = false;
     var level = 0;           // current fade level, 0..1 (multiplied by `target`)
@@ -270,6 +278,7 @@
       clearTimeout(hintTimer);
       hintTimer = setTimeout(function () {
         if (!btn.classList.contains("is-visible")) return;
+        if (on !== wantOn) return;                       // the state changed meanwhile (e.g. playback was refused): say nothing
         var T = cfg.text || {};
         hintEl.textContent = sound ? (on ? T.soundOn : T.soundOff) || (on ? "Sound on" : "Sound off")
                                    : (on ? T.musicOn : T.musicOff) || (on ? "Music on" : "Music off");
@@ -308,23 +317,85 @@
     }
     audio.addEventListener("error", function () { if (loaded) giveUp(); });
 
-    var autoStart = false, retryArmed = false;
-    function armRetry() {
-      if (retryArmed || failed) return;
-      retryArmed = true;
-      var evs = ["pointerdown", "touchend", "click", "keydown"];
-      function fire() {
-        evs.forEach(function (n) { document.removeEventListener(n, fire, true); });
-        retryArmed = false;
-        if (failed || held || wantOn) return;
-        wantOn = true; setUi(true); play(); hint(true, 1800);
-      }
-      evs.forEach(function (n) { document.addEventListener(n, fire, true); });
+    function ctxRunning() { return !ctx || ctx.state === "running"; }
+
+    // Calls back with true once the audio graph is really live (a suspended AudioContext is resumed first).
+    function whenAudible(cb) {
+      if (ctxRunning()) { cb(true); return; }
+      var done = false;
+      function fin(ok) { if (done) return; done = true; cb(!!ok && ctxRunning()); }
+      try {
+        var r = ctx.resume();
+        if (r && r.then) r.then(function () { fin(true); }, function () { fin(false); }); else fin(true);
+      } catch (e) { fin(false); }
+      setTimeout(function () { fin(false); }, 600);
+    }
+
+    function unmuteElement() {
+      if (!mutedStart) return;
+      mutedStart = false;
+      try { audio.muted = false; } catch (e) {}
+    }
+    function seekToStart() { try { if (audio.currentTime > 0.05) audio.currentTime = 0; } catch (e) {} }
+
+    // Fade the wedding music in (level is 0 here, so nothing is ever heard before this moment).
+    function fadeUp() {
+      unmuteElement();
+      fadeTo(1, fadeIn);
+      hint(true, 3200, 1500);
+    }
+    // Playback could not be confirmed: stay silent, show the control as "off"; the guest can tap it.
+    function notStarted() {
+      startState = "blocked";
+      wantOn = false; setUi(false);
+      try { audio.pause(); } catch (e) {}
+    }
+    function afterRunning() {
+      if (failed || held || !wantOn) return;
+      whenAudible(function (ok) {
+        if (failed || held || !wantOn) return;
+        if (ok) fadeUp(); else notStarted();
+      });
+    }
+
+    /* One fresh play() request (used only when the silent start is not running at the hand-over).
+       Its result is always handled; a refusal leaves the music off and the control showing "off". */
+    function attempt() {
+      var token = ++startToken;
+      startState = "starting";
+      setupGain(); wake(); setLevel(0);
+      var p;
+      try { p = audio.play(); } catch (e) { notStarted(); return; }
+      if (p && p.then) {
+        p.then(function () {
+          if (token !== startToken) return;
+          startState = "running"; afterRunning();
+        }, function () {
+          if (token !== startToken) return;
+          notStarted();
+        });
+      } else { startState = "running"; afterRunning(); }
+    }
+
+    function stopTrack() {                               // the guest muted during the film: stop the silent track
+      startToken++; startState = "stopped";
+      try { audio.pause(); } catch (e) {}
+      unmuteElement();
+      seekToStart();                                     // a later unmute starts the music from its beginning
+    }
+
+    /* The opening film is silent: the wedding music starts, from the beginning of the track. */
+    function takeOver() {
+      if (failed || held) return;
+      if (!wantOn) { stopTrack(); return; }
+      if (startState === "starting") return;             // the silent start is still pending: its result calls back here
+      seekToStart();
+      if (startState === "running" && !audio.paused && !audio.ended) { afterRunning(); return; }   // already playing: no second play()
+      attempt();                                         // blocked / interrupted: one fresh, handled attempt
     }
 
     function play() {
       if (failed) return;
-      var auto = autoStart;                              // remembered for the async result below
       if (!loaded) {
         loaded = true;
         audio.loop = true;
@@ -333,18 +404,21 @@
       }
       setupGain();
       wake();
-      setLevel(level);                                   // apply the current level to the fresh output path
+      setLevel(level);                                   // apply the current level to the output path
+      unmuteElement();
+      if (!audio.paused && !audio.ended) { startState = "running"; fadeTo(1, fadeIn); return; }   // already playing: just fade up
+      var token = ++startToken;
       var p = audio.play();
       var started = function () {
+        if (token !== startToken) return;
+        startState = "running";
         if (!wantOn) return;                             // guest muted again while it was starting
         fadeTo(1, fadeIn);
       };
       if (p && p.then) {
         p.then(started, function () {
-          // Blocked or failed: stay silent and show the control as "off". If this was the automatic start
-          // at the hand-over, the very next tap / key press anywhere on the page starts the music.
-          wantOn = false; setUi(false);
-          if (auto) armRetry();
+          if (token !== startToken) return;
+          startState = "blocked"; wantOn = false; setUi(false);   // refused: stay silent, control shows "off"
         });
       } else started();
     }
@@ -359,12 +433,13 @@
     function off() {
       wantOn = false; setUi(false);
       if (held) { if (prefCb) prefCb(false); return; }
-      fadeTo(0, fadeOut, function () { if (!wantOn) { try { audio.pause(); } catch (e) {} } });
+      fadeTo(0, fadeOut, function () { if (!wantOn) { startToken++; startState = "stopped"; try { audio.pause(); } catch (e) {} } });
     }
 
-    /* Called inside the OPEN INVITATION tap. It "unlocks" the music element for mobile browsers
-       (play + immediate pause, silent, inside the gesture) so the music can start later, by itself,
-       when the opening film hands over. Nothing is audible here, and the music stays on hold. */
+    /* Called synchronously inside the OPEN INVITATION tap (the one moment mobile browsers allow playback).
+       The music starts HERE, at level 0, and keeps running silently under the opening film;
+       release() only rewinds it and fades it up. Silence is guaranteed by the volume property or the
+       Web Audio gain node; where neither exists the element is started muted instead. */
     function begin(onPreference) {
       if (failed) return;
       held = true; prefCb = onPreference || null;
@@ -378,24 +453,25 @@
         audio.src = versioned(c.src);
       }
       level = 0;
-      setupGain();
+      setupGain();                                       // creates + resumes the AudioContext inside the tap (iOS)
       wake();
       setLevel(0);
-      /* Mobile browsers (iPhone Safari above all) often refuse a later play() that is not inside a tap,
-         even after a play()+pause() "unlock". So when the volume can really be held at zero (volume
-         property or gain node) the music is started HERE, inside the tap, at level 0 and simply keeps
-         running silently under the opening film; release() only fades it up. Where silence cannot be
-         guaranteed, the old behaviour is kept: unlock, pause, and start at the hand-over. */
-      try {
-        if (volumeWorks || useGain) {
-          var p = audio.play();
-          if (p && p.catch) p.catch(function () { /* blocked: release() will try again */ });
-        } else {
-          var q = audio.play();
-          audio.pause();                                 // silent, instant: only the permission is kept
-          if (q && q.catch) q.catch(function () { /* interrupted by pause(): expected */ });
-        }
-      } catch (e) {}
+      if (!volumeWorks && !useGain) { mutedStart = true; try { audio.muted = true; } catch (e) {} }
+      var token = ++startToken;
+      startState = "starting";
+      var p;
+      try { p = audio.play(); } catch (e) { startState = "blocked"; return; }
+      var ok = function () {
+        if (token !== startToken) return;
+        startState = "running";
+        if (!held) { seekToStart(); afterRunning(); }    // the hand-over was requested while the start was pending
+      };
+      var refused = function () {
+        if (token !== startToken) return;
+        startState = "blocked";                          // refused inside the tap: takeOver() makes one handled attempt
+        if (!held) takeOver();
+      };
+      if (p && p.then) p.then(ok, refused); else ok();
     }
     /* The opening film's sound is gone: the wedding music takes over (if the guest has not muted). */
     function release() {
@@ -403,10 +479,7 @@
       held = false; prefCb = null;
       setUi(wantOn);
       if (failed) return;
-      if (wantOn) {
-        setLevel(0); autoStart = true; play(); autoStart = false;   // already running silently? this just fades it up
-        hint(true, 3200, 1500);
-      } else { try { audio.pause(); } catch (e) {} }               // guest muted during the film: stop the silent track
+      takeOver();
     }
 
     btn.addEventListener("click", function () { if (wantOn) { off(); hint(false, 1800); } else { on(); hint(true, 1800); } });
@@ -415,7 +488,7 @@
     document.addEventListener("visibilitychange", function () {
       if (failed || !loaded || held) return;
       if (document.hidden) { try { audio.pause(); } catch (e) {} }
-      else if (wantOn) {
+      else if (wantOn && audio.paused) {
         wake();
         var p = audio.play();
         if (p && p.catch) p.catch(function () { wantOn = false; setUi(false); });
@@ -423,7 +496,7 @@
     });
 
     setUi(false);
-    return {
+    var api = {
       begin: begin,                                      // called from the "Tap to Open Invitation" tap
       release: release,                                  // called when the opening film hands over
       wants: function () { return wantOn; },
@@ -431,9 +504,16 @@
         if (failed) return;
         btn.hidden = false;
         requestAnimationFrame(function () { requestAnimationFrame(function () { btn.classList.add("is-visible"); }); });
-        if (wantOn && !held) hint(true, 3200, 1500);   // first time the control appears: say that the music is playing
+        // (the "Music on" label is shown by fadeUp(), only once playback is confirmed)
+      },
+      // Test/diagnostic hook (read-only; no effect on behaviour)
+      state: function () {
+        return { startState: startState, wantOn: wantOn, held: held, paused: audio.paused, currentTime: audio.currentTime,
+                 level: level, muted: audio.muted, ctxState: ctx ? ctx.state : null, useGain: useGain, volumeWorks: volumeWorks };
       }
     };
+    window.__music = api;
+    return api;
   }
 
   /* ------------------------------------------------------------------ *
@@ -459,6 +539,8 @@
     }
 
     main.inert = true;
+    var heroDust = $("#heroDust");
+    if (heroDust) heroDust.style.visibility = "hidden";   // nothing of the hero shows through the fading overlay
 
     var video = $("#introVideo");
     var poster = $("#introPoster");
@@ -491,12 +573,46 @@
       root.classList.remove("intro-active");
       main.inert = false;
       window.scrollTo(0, 0);
-      startReveals();
+      if (bgCtl) bgCtl.start();              // the forest background still begins as the opening fades (unchanged)
       if (musicCtl) musicCtl.showControl();
-      setTimeout(function () {
+      // The hero reveal waits until the overlay has really finished fading out: the overlay's opacity
+      // transition must have run to its end AND its computed opacity must read ~0. A stray / early
+      // transitionend (or a missing one — iOS can drop them) therefore can neither start the reveal
+      // too soon nor hold it back: a timer re-checks the actual opacity as a safety net.
+      var gone = false, tries = 0;
+      var fadeMs = (function () {
+        try {
+          var cs = getComputedStyle(intro), props = cs.transitionProperty.split(","), durs = cs.transitionDuration.split(",");
+          for (var i = 0; i < props.length; i++) {
+            if (props[i].trim() === "opacity" || props[i].trim() === "all") return (parseFloat(durs[i % durs.length]) || 0) * 1000;
+          }
+        } catch (e) {}
+        return 1300;
+      })();
+      function introGone() {
+        if (gone) return;
+        gone = true;
+        clearTimeout(timers.gone);
+        intro.removeEventListener("transitionend", onFaded);
         try { video.pause(); video.removeAttribute("src"); video.load(); } catch (e) {}
         intro.remove();
-      }, reduceMotion ? 50 : 1500);
+        startReveals();
+      }
+      function checkGone() {
+        if (gone) return;
+        clearTimeout(timers.gone);
+        var o = 0;
+        try { o = parseFloat(getComputedStyle(intro).opacity); } catch (e) {}
+        if (!(o > 0.02) || ++tries > 25) introGone();      // invisible (or, after ~2.5 s of waiting, move on anyway)
+        else timers.gone = setTimeout(checkGone, 100);
+      }
+      function onFaded(e) {
+        if (e.target !== intro || e.propertyName !== "opacity") return;
+        if (e.elapsedTime * 1000 < fadeMs - 60) return;    // an early / partial end is not the end of the fade
+        checkGone();
+      }
+      intro.addEventListener("transitionend", onFaded);
+      timers.gone = setTimeout(checkGone, fadeMs + 150);
     }
 
     /* ---- Audio hand-over: video sound -> wedding music, never both at once ----

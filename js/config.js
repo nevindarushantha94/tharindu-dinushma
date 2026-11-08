@@ -124,10 +124,11 @@ window.WEDDING_CONFIG = {
   },
 
   /* ---- Background music --------------------------------------------------
-     Starts ONLY when the guest taps "Tap to Open Invitation" (browsers block
-     sound that starts on its own). It then plays continuously — through the
-     opening video and the whole invitation — and loops. The floating music
-     button lets guests mute / unmute.
+     Starts ONLY from the guest's "Tap to Open Invitation" tap (browsers block
+     sound that starts on its own): inside that tap it begins playing SILENTLY
+     under the opening video (which keeps its own sound). When the video ends
+     or is skipped, the track is rewound to the start and fades in by itself,
+     then loops. The floating music button lets guests mute / unmute.
      volume: 0 … 1 (final level after the fade-in).
      Replacing the file with the same name? bump `version`.
      Leave `src` empty ("") to turn the music (and its button) off.          */

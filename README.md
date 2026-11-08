@@ -19,6 +19,12 @@ assets/botanical/   divider.svg (sprig divider) · sprig.svg (single eucalyptus 
 vercel.json         caching + security headers
 ```
 
+## v19 — music hand-over + hero reveal timing
+Two fixes in `js/main.js`; no wording, design, asset, RSVP, contact or config value changed.
+- **Music starts by itself after the intro (`initMusic()`).** Inside the *Tap to Open Invitation* tap the music's one gesture-dependent `play()` is made synchronously, silently (level 0 through `audio.volume`, or — on iPhone Safari, which ignores `volume` — a Web Audio gain node; with neither, `audio.muted`). It runs under the opening video, which keeps its own sound. At the hand-over (video ended, or *Skip Intro*, after the video's sound is out) the track is rewound to 0:00 and faded in; `play()` is **not** called again when the silent start is confirmed running. Every `play()` promise is handled. If the browser refuses, nothing plays, the music button shows *off*, and one handled retry is made at the hand-over; the guest can then tap the button. The old "next tap anywhere starts the music" listener is gone. A mute made during the film stays muted (the silent track is stopped and rewound, so unmuting later starts from the beginning). The "Music on" label appears only once playback is confirmed.
+- **Hero reveal waits for the intro to disappear (`finish()`).** `startReveals()` now runs only after the overlay's fade-out has ended **and** its computed opacity is ~0 (with a timer re-check as a safety net, because a stray or missing `transitionend` must not start it early or hold it back). The hero's gold specks stay hidden until then. The staggered sequence (atmosphere → photograph, names, invitation line, date, swipe cue) is unchanged. The forest background still starts as the opening begins to fade.
+- `window.__music.state()` is a read-only diagnostic hook, like `window.__intro.state()`.
+
 ## v17 — photographic backgrounds + frosted glass
 Three portrait photographs (`assets/photos/chapel|reception|canopy` in `.webp` with `.jpg` fallback, ~95–110 KB each) sit behind three existing sections. No wording, functionality or config changed.
 - **“I Do” (`#families`)** — chapel photograph; two ivory glass panels with an open window between them so the stained glass, cross and candles stay visible. The faint T & D watermark is hidden here.
@@ -50,8 +56,8 @@ Everything is layered on the existing design; no content, assets or RSVP flow ch
 
 ## Background music
 `assets/audio/background-music.mp3` (settings in `js/config.js → music`).
-- It **never autoplays**. It starts only when the guest taps **Tap to Open Invitation**, with a gentle fade-in, together with the opening video (the video's own sound is ignored — it is muted).
-- The same audio keeps playing, without restarting, when the opening video ends and while the guest scrolls; it loops.
+- It **never autoplays on its own**. It starts inside the **Tap to Open Invitation** tap, silently, under the opening video (which keeps its own sound), and fades in from 0:00 when the video ends or is skipped (see v19 above).
+- The same audio keeps playing, without a second `play()`, after the hand-over and while the guest scrolls; it loops.
 - A small floating button (bottom-right, above the phone's safe area) mutes / unmutes with a fade. Muting pauses the audio quietly; unmuting resumes from the same place. Music also pauses while the page is hidden (tab switch / screen lock) and resumes when it returns.
 - For links that skip the opening (e.g. `…/#rsvp`) the button appears switched off; tapping it starts the music.
 - `volume` (0–1), `fadeInMs`, `fadeOutMs` can be changed in `js/config.js`. Replacing the file under the same name? Bump `music.version`. Set `music.src` to `""` to remove the music and its button.
