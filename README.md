@@ -10,16 +10,26 @@ js/logic.js         countdown / date / WhatsApp helpers (pure functions)
 js/main.js          tap-to-open intro, reveals, countdown, RSVP, contacts
 scripts/set-site-url.js   makes social-share tags absolute once you have your domain
 assets/social/      og-image.jpg  ← 1200×630 link-preview image
-assets/video/       opening.mp4            ← opening video (plays WITH its own sound)
+assets/video/       opening.mp4            ← opening video (silent, always muted; plays under the wedding music)
                     poster.jpg             ← frame shown while the opening video loads
                     background.mp4         ← looping forest background (silent)
                     background-poster.jpg  ← still frame used if the background can't play
-assets/audio/       background-music.mp3   ← background music (128 kbps, plays after the guest taps open)
+assets/audio/       background-music.mp3   ← the ONE soundtrack (128 kbps; starts at the tap, plays through the intro and the invitation)
 assets/botanical/   divider.svg (sprig divider) · sprig.svg (single eucalyptus sprig ornament)
 vercel.json         caching + security headers
 ```
 
-## v19 — music hand-over + hero reveal timing
+## v20 — old intro video restored · one continuous soundtrack
+Changes are limited to the opening sequence and the music controller; design, wording, RSVP, WhatsApp message, contacts, background video and layout are untouched.
+- **Files changed:** `assets/video/opening.mp4` and `assets/video/poster.jpg` (the client's original intro film, 720×1280, H.264, no audio track, quick-start layout, and its exact first frame), `index.html` (poster `?v=4`, `webkit-playsinline`, comments), `js/config.js` (`video.version/posterVersion` = 4, removed the video-sound settings and the unused `soundOn/soundOff` texts, `music.fadeInMs` 900 / `fadeOutMs` 600), `js/main.js` (`initMusic()` simplified; `initIntro()` no longer handles video sound), this README.
+- **Audio hand-over (there is none any more):** the film is `muted` in the markup and in code, and the file has no audio track. In the *Tap to Open Invitation* tap, `musicCtl.begin()` calls `audio.play()` for the single `<audio id="bgMusic">`, starting at 0:00 with a ~0.9 s swell, and `video.play()` starts the silent film. The film ending, being skipped, or failing only changes the screen (`finish()` pauses the film and fades the overlay); it never touches the music, so the same playback just carries on. Nothing re-creates, rewinds, re-sources or re-plays the audio. Muting fades out and pauses (position kept); unmuting resumes from that position. The audio is paused while the page is hidden and resumes when it is visible again, and every `play()` promise is handled (a refusal leaves the button on "off" for the guest to tap).
+- **Skip:** the *Skip Intro* button, **Escape**, or a **tap anywhere on the film** (ignored for 0.7 s after the opening tap, and never on the music button, which sits outside the intro). The film stops immediately and the same 1.3 s fade-out reveals the invitation.
+- **Transition:** the overlay (ivory background) fades out over the page's ivory background while the forest background fades in, then the hero reveal plays. No black or white frame, no loading screen.
+- **Layout:** unchanged CSS — the film is shown whole at 9:16 (centred on desktop; feathered top/bottom edges on very tall phones); `object-fit: cover` on an exactly-9:16 box, so nothing is cropped or stretched.
+- `window.__music.state()` now also reports `audioElements` (always 1).
+- Replacing the film again: keep it muted/no-audio, re-extract the first frame for `poster.jpg`, bump `video.version`, `video.posterVersion` and the two `?v=` values in `index.html`.
+
+## v19 — music hand-over + hero reveal timing (superseded by v20: the hand-over no longer exists)
 Two fixes in `js/main.js`; no wording, design, asset, RSVP, contact or config value changed.
 - **Music starts by itself after the intro (`initMusic()`).** Inside the *Tap to Open Invitation* tap the music's one gesture-dependent `play()` is made synchronously, silently (level 0 through `audio.volume`, or — on iPhone Safari, which ignores `volume` — a Web Audio gain node; with neither, `audio.muted`). It runs under the opening video, which keeps its own sound. At the hand-over (video ended, or *Skip Intro*, after the video's sound is out) the track is rewound to 0:00 and faded in; `play()` is **not** called again when the silent start is confirmed running. Every `play()` promise is handled. If the browser refuses, nothing plays, the music button shows *off*, and one handled retry is made at the hand-over; the guest can then tap the button. The old "next tap anywhere starts the music" listener is gone. A mute made during the film stays muted (the silent track is stopped and rewound, so unmuting later starts from the beginning). The "Music on" label appears only once playback is confirmed.
 - **Hero reveal waits for the intro to disappear (`finish()`).** `startReveals()` now runs only after the overlay's fade-out has ended **and** its computed opacity is ~0 (with a timer re-check as a safety net, because a stray or missing `transitionend` must not start it early or hold it back). The hero's gold specks stay hidden until then. The staggered sequence (atmosphere → photograph, names, invitation line, date, swipe cue) is unchanged. The forest background still starts as the opening begins to fade.
@@ -56,8 +66,8 @@ Everything is layered on the existing design; no content, assets or RSVP flow ch
 
 ## Background music
 `assets/audio/background-music.mp3` (settings in `js/config.js → music`).
-- It **never autoplays on its own**. It starts inside the **Tap to Open Invitation** tap, silently, under the opening video (which keeps its own sound), and fades in from 0:00 when the video ends or is skipped (see v19 above).
-- The same audio keeps playing, without a second `play()`, after the hand-over and while the guest scrolls; it loops.
+- It **never autoplays on its own**. It starts inside the **Tap to Open Invitation** tap, from 0:00, under the silent opening video (see v20 above).
+- The same audio keeps playing, without a second `play()`, when the film ends or is skipped and while the guest scrolls; it loops.
 - A small floating button (bottom-right, above the phone's safe area) mutes / unmutes with a fade. Muting pauses the audio quietly; unmuting resumes from the same place. Music also pauses while the page is hidden (tab switch / screen lock) and resumes when it returns.
 - For links that skip the opening (e.g. `…/#rsvp`) the button appears switched off; tapping it starts the music.
 - `volume` (0–1), `fadeInMs`, `fadeOutMs` can be changed in `js/config.js`. Replacing the file under the same name? Bump `music.version`. Set `music.src` to `""` to remove the music and its button.

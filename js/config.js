@@ -97,13 +97,12 @@ window.WEDDING_CONFIG = {
   video: {
     src: "assets/video/opening.mp4",
     poster: "assets/video/poster.jpg",
-    version: "3",          // bump when the video file changes (cache-busting)
-    posterVersion: "3",    // poster = first frame of opening.mp4; keep in step with the ?v= in index.html
-    // The opening video plays WITH its own sound (started by the OPEN INVITATION tap).
-    // When it ends, or when the guest taps SKIP INTRO, its sound is faded out over these
-    // many milliseconds and only then does the wedding music take over (never both at once).
-    fadeOutMs: 600,        // fade-out of the video's sound when it is skipped
-    endFadeMs: 300,        // safety fade if the video is cut short for any other reason
+    version: "4",          // bump when the video file changes (cache-busting)
+    posterVersion: "4",    // poster = first frame of opening.mp4; keep in step with the ?v= in index.html
+    // The opening video is ALWAYS silent (muted in code and in the file). The wedding music
+    // starts at the OPEN INVITATION tap and plays straight through the film into the invitation.
+    // Guests can tap anywhere on the film (or "Skip Intro") to go straight to the invitation;
+    // the music is never touched by that.
     // Only used AFTER the guest has tapped, if the video cannot load or play:
     // the invitation then opens by itself after this many milliseconds.
     fallbackAutoOpenMs: 2500
@@ -125,10 +124,10 @@ window.WEDDING_CONFIG = {
 
   /* ---- Background music --------------------------------------------------
      Starts ONLY from the guest's "Tap to Open Invitation" tap (browsers block
-     sound that starts on its own): inside that tap it begins playing SILENTLY
-     under the opening video (which keeps its own sound). When the video ends
-     or is skipped, the track is rewound to the start and fades in by itself,
-     then loops. The floating music button lets guests mute / unmute.
+     sound that starts on its own): inside that tap it starts from 0:00 and plays
+     under the silent opening video, then carries on — the same playback, never
+     restarted — into the invitation, and loops. The floating music button lets
+     guests mute / unmute (unmuting resumes from the same position).
      volume: 0 … 1 (final level after the fade-in).
      Replacing the file with the same name? bump `version`.
      Leave `src` empty ("") to turn the music (and its button) off.          */
@@ -136,8 +135,8 @@ window.WEDDING_CONFIG = {
     src: "assets/audio/background-music.mp3",
     version: "1",
     volume: 0.6,
-    fadeInMs: 2600,
-    fadeOutMs: 900
+    fadeInMs: 900,         // short, gentle swell at the very start (the music still starts at the tap)
+    fadeOutMs: 600
   },
 
   /* ---- RSVP (WhatsApp) -------------------------------------------------- */
@@ -166,8 +165,6 @@ window.WEDDING_CONFIG = {
     scrollCue: "Scroll",
     musicOn: "Music on",
     musicOff: "Music off",
-    soundOn: "Sound on",
-    soundOff: "Sound off",
     skipIntro: "Skip Intro",
     // Before we say "I do" + families
     familiesEyebrow: "Before we say",

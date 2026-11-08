@@ -28,7 +28,7 @@
 
   <!-- Opening poster: fetched first so the envelope is on screen at first paint.
        Keep the ?v= in step with video.version in js/config.js (also on #introPoster below). -->
-  <link rel="preload" as="image" href="assets/video/poster.jpg?v=3" fetchpriority="high">
+  <link rel="preload" as="image" href="assets/video/poster.jpg?v=4" fetchpriority="high">
   <!-- Fonts are self-hosted (assets/fonts, declared in css/styles.css). Only the three faces the
        opening button and the hero names need are preloaded; the rest load as they are used. -->
   <link rel="preload" as="font" type="font/woff2" href="assets/fonts/jost-latin-500-normal.woff2" crossorigin>
@@ -59,15 +59,17 @@
 
   <!-- ================= OPENING (poster + tap to open) =================
        Poster and video files are set in js/config.js → video.
+       The intro film is permanently SILENT (`muted`; the file also has no audio track). The wedding
+       music (#bgMusic below) is the only soundtrack and runs straight through the film.
        The <video> has NO autoplay. js/main.js starts buffering it quietly once the poster
        has painted (preload only — no playback), and calls play() inside the guest's tap. -->
   <div id="intro" class="intro" role="dialog" aria-modal="true" aria-label="Wedding invitation — tap to open">
     <div class="intro__stage">
-      <video id="introVideo" class="intro__video" muted playsinline preload="none"
+      <video id="introVideo" class="intro__video" muted playsinline webkit-playsinline preload="none"
              disablepictureinpicture disableremoteplayback tabindex="-1" aria-hidden="true"></video>
 
       <!-- Shown on top of the video until the video is actually rendering frames -->
-      <img id="introPoster" class="intro__poster" alt="" decoding="async" fetchpriority="high" src="assets/video/poster.jpg?v=3">
+      <img id="introPoster" class="intro__poster" alt="" decoding="async" fetchpriority="high" src="assets/video/poster.jpg?v=4">
 
       <!-- Shown only when the poster is missing, or the video cannot play -->
       <div class="intro__fallback" aria-hidden="true">
@@ -318,7 +320,8 @@
   <!-- ================= BACKGROUND MUSIC =================
        File: assets/audio/background-music.mp3 (set in js/config.js → music).
        No src and no autoplay: js/main.js loads and plays it only after the guest
-       taps "Tap to Open Invitation" (or taps this button). -->
+       taps "Tap to Open Invitation" (or taps this button). It is the ONE audio element on the
+       page: it keeps playing through the silent intro film and into the invitation. -->
   <audio id="bgMusic" preload="none" loop playsinline></audio>
   <span id="musicHint" class="music-hint" aria-hidden="true"></span>
   <button id="musicBtn" class="music" type="button" aria-pressed="false" aria-label="Play background music" hidden>
