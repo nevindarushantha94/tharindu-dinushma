@@ -28,7 +28,7 @@
 
   <!-- Opening poster: fetched first so the envelope is on screen at first paint.
        Keep the ?v= in step with video.version in js/config.js (also on #introPoster below). -->
-  <link rel="preload" as="image" href="assets/video/poster.jpg?v=4" fetchpriority="high">
+  <link rel="preload" as="image" href="assets/video/poster.jpg?v=5" fetchpriority="high">
   <!-- Fonts are self-hosted (assets/fonts, declared in css/styles.css). Only the three faces the
        opening button and the hero names need are preloaded; the rest load as they are used. -->
   <link rel="preload" as="font" type="font/woff2" href="assets/fonts/jost-latin-500-normal.woff2" crossorigin>
@@ -69,7 +69,7 @@
              disablepictureinpicture disableremoteplayback tabindex="-1" aria-hidden="true"></video>
 
       <!-- Shown on top of the video until the video is actually rendering frames -->
-      <img id="introPoster" class="intro__poster" alt="" decoding="async" fetchpriority="high" src="assets/video/poster.jpg?v=4">
+      <img id="introPoster" class="intro__poster" alt="" decoding="async" fetchpriority="high" src="assets/video/poster.jpg?v=5">
 
       <!-- Shown only when the poster is missing, or the video cannot play -->
       <div class="intro__fallback" aria-hidden="true">

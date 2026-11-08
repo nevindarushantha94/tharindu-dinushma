@@ -97,8 +97,8 @@ window.WEDDING_CONFIG = {
   video: {
     src: "assets/video/opening.mp4",
     poster: "assets/video/poster.jpg",
-    version: "4",          // bump when the video file changes (cache-busting)
-    posterVersion: "4",    // poster = first frame of opening.mp4; keep in step with the ?v= in index.html
+    version: "5",          // bump when the video file changes (cache-busting)
+    posterVersion: "5",    // poster = first frame of opening.mp4; keep in step with the ?v= in index.html
     // The opening video is ALWAYS silent (muted in code and in the file). The wedding music
     // starts at the OPEN INVITATION tap and plays straight through the film into the invitation.
     // Guests can tap anywhere on the film (or "Skip Intro") to go straight to the invitation;

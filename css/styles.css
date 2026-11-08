@@ -121,18 +121,10 @@ html:not(.intro-active) .intro:not(.is-leaving) { display: none; }
 }
 .intro.is-playing .intro__poster, .intro.is-fallback .intro__poster, .intro.no-poster .intro__poster { opacity: 0; visibility: hidden; transition: opacity 1s var(--ease), visibility 0s linear 1s; }
 
-/* Taller than 9:16 (e.g. a phone in full screen): the stage is the whole screen. Instead of cropping the
-   sides of the film, show it whole and feather its top and bottom edges into the ivory page. */
-@media (max-aspect-ratio: 9/16) {
-  .intro__video, .intro__poster {
-    inset: auto; left: 0; top: 50%; translate: 0 -50%;
-    width: 100%; height: auto; aspect-ratio: 9 / 16; object-fit: cover;   /* the box is exactly 9:16: nothing is cropped or stretched */
-    -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 7%, #000 93%, transparent 100%);
-            mask-image: linear-gradient(to bottom, transparent 0, #000 7%, #000 93%, transparent 100%);
-  }
-  /* the poster's feathered edges must not show the still, not-yet-playing first frame behind it */
-  .intro:not(.is-playing) .intro__video { opacity: 0; }
-}
+/* Taller than 9:16 (e.g. a modern phone): the film fills the whole screen edge to edge (object-fit: cover).
+   Only a few percent is trimmed from each side; the seal, ribbon and T&D monogram sit well inside the safe area.
+   (v21: this replaced the earlier "show it whole and feather the top and bottom into ivory" rule, which left
+   empty ivory bands above and below the envelope on tall phones.) */
 
 /* wide screens: soft side panels so the 9:16 video reads as intentional */
 @media (min-aspect-ratio: 3/4) {

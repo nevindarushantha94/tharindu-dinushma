@@ -19,6 +19,12 @@ assets/botanical/   divider.svg (sprig divider) · sprig.svg (single eucalyptus 
 vercel.json         caching + security headers
 ```
 
+## v21 — new envelope-to-monogram intro film
+- `assets/video/opening.mp4` is now the redesigned film: sealed envelope (full-screen) → seal breaks and flaps open → ribbon bow untied → the "T&D" monogram writes itself inside a eucalyptus wreath, then holds still for the last ~2.5 s. 720×1280, H.264, 10 s, 2.5 MB. The picture is untouched; only the unused audio track and metadata were removed and the file was laid out for quick start (lossless).
+- `assets/video/poster.jpg` is the exact first frame of this film (full-bleed envelope with the T&D seal).
+- `video.version` and `video.posterVersion` are now "5", and both `?v=` values in `index.html` are 5. - **Full-screen on phones (`css/styles.css`):** on screens taller than 9:16 the film and poster now fill the whole screen (`object-fit: cover`, a few percent trimmed from each side) instead of being feathered into ivory bands at the top and bottom. Tablets and desktops still show the 9:16 film centred on ivory. To go back to the old feathered look, restore the `@media (max-aspect-ratio: 9/16)` block described in the v20 CSS comment history.
+- Nothing else changed; the v20 silent-film / continuous-music behaviour is as described below.
+
 ## v20 — old intro video restored · one continuous soundtrack
 Changes are limited to the opening sequence and the music controller; design, wording, RSVP, WhatsApp message, contacts, background video and layout are untouched.
 - **Files changed:** `assets/video/opening.mp4` and `assets/video/poster.jpg` (the client's original intro film, 720×1280, H.264, no audio track, quick-start layout, and its exact first frame), `index.html` (poster `?v=4`, `webkit-playsinline`, comments), `js/config.js` (`video.version/posterVersion` = 4, removed the video-sound settings and the unused `soundOn/soundOff` texts, `music.fadeInMs` 900 / `fadeOutMs` 600), `js/main.js` (`initMusic()` simplified; `initIntro()` no longer handles video sound), this README.
