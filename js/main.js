@@ -308,8 +308,23 @@
     }
     audio.addEventListener("error", function () { if (loaded) giveUp(); });
 
+    var autoStart = false, retryArmed = false;
+    function armRetry() {
+      if (retryArmed || failed) return;
+      retryArmed = true;
+      var evs = ["pointerdown", "touchend", "click", "keydown"];
+      function fire() {
+        evs.forEach(function (n) { document.removeEventListener(n, fire, true); });
+        retryArmed = false;
+        if (failed || held || wantOn) return;
+        wantOn = true; setUi(true); play(); hint(true, 1800);
+      }
+      evs.forEach(function (n) { document.addEventListener(n, fire, true); });
+    }
+
     function play() {
       if (failed) return;
+      var auto = autoStart;                              // remembered for the async result below
       if (!loaded) {
         loaded = true;
         audio.loop = true;
@@ -326,8 +341,10 @@
       };
       if (p && p.then) {
         p.then(started, function () {
-          // Blocked or failed: stay silent, show the control as "off" so a tap can try again.
+          // Blocked or failed: stay silent and show the control as "off". If this was the automatic start
+          // at the hand-over, the very next tap / key press anywhere on the page starts the music.
           wantOn = false; setUi(false);
+          if (auto) armRetry();
         });
       } else started();
     }
@@ -364,10 +381,20 @@
       setupGain();
       wake();
       setLevel(0);
+      /* Mobile browsers (iPhone Safari above all) often refuse a later play() that is not inside a tap,
+         even after a play()+pause() "unlock". So when the volume can really be held at zero (volume
+         property or gain node) the music is started HERE, inside the tap, at level 0 and simply keeps
+         running silently under the opening film; release() only fades it up. Where silence cannot be
+         guaranteed, the old behaviour is kept: unlock, pause, and start at the hand-over. */
       try {
-        var p = audio.play();
-        audio.pause();                                   // silent, instant: only the permission is kept
-        if (p && p.catch) p.catch(function () { /* interrupted by pause(): expected */ });
+        if (volumeWorks || useGain) {
+          var p = audio.play();
+          if (p && p.catch) p.catch(function () { /* blocked: release() will try again */ });
+        } else {
+          var q = audio.play();
+          audio.pause();                                 // silent, instant: only the permission is kept
+          if (q && q.catch) q.catch(function () { /* interrupted by pause(): expected */ });
+        }
       } catch (e) {}
     }
     /* The opening film's sound is gone: the wedding music takes over (if the guest has not muted). */
@@ -376,7 +403,10 @@
       held = false; prefCb = null;
       setUi(wantOn);
       if (failed) return;
-      if (wantOn) { setLevel(0); play(); hint(true, 3200, 1500); }
+      if (wantOn) {
+        setLevel(0); autoStart = true; play(); autoStart = false;   // already running silently? this just fades it up
+        hint(true, 3200, 1500);
+      } else { try { audio.pause(); } catch (e) {} }               // guest muted during the film: stop the silent track
     }
 
     btn.addEventListener("click", function () { if (wantOn) { off(); hint(false, 1800); } else { on(); hint(true, 1800); } });

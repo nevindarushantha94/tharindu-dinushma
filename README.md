@@ -161,3 +161,11 @@ The RSVP is a staged flow: **choose** (Joyfully Accept / Regretfully Decline) �
 
 ## v17.1 — opening poster
 `assets/video/poster.jpg` is now the exact first frame of `assets/video/opening.mp4` (the stained-glass rose window), so the tap-to-open screen and the video start match with no visible jump. If you replace the opening video again, re-extract its first frame (`ffmpeg -i opening.mp4 -frames:v 1 poster.jpg`) and bump `video.posterVersion` plus the two `?v=` values in `index.html`.
+
+## v17.2 — Vercel Web Analytics
+Plain-HTML Vercel Analytics snippet in `<head>` of `index.html` (static site: no npm package / `<Analytics />` component). Enable Web Analytics for the project in the Vercel dashboard; visits show up about 30 seconds after deploying. Content blockers can hide visits.
+
+## v18 — music starts by itself after the intro
+- **Cause:** the music was only "unlocked" in the tap (play + pause) and started later with no tap. Phones, iPhone Safari especially, often refuse that.
+- **Fix (`initMusic()` in `js/main.js`):** when volume can be held at zero, the music now starts *inside the tap* at level 0 and runs silently under the opening film; at the hand-over (video ended / Skip Intro) it only fades up. If the browser still blocks the automatic start, the music button shows "off" and the guest's very next tap or key press anywhere starts it. Muting during the film keeps it muted.
+- **Share image:** `assets/social/og-image.jpg` (new couple photo card) resized to 1200 × 630 (2.7 MB → 135 KB) so WhatsApp/Facebook previews load; its alt text updated.
