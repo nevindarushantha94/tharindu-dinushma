@@ -42,7 +42,7 @@ Two fixes in `js/main.js`; no wording, design, asset, RSVP, contact or config va
 - `window.__music.state()` is a read-only diagnostic hook, like `window.__intro.state()`.
 
 ## v17 — photographic backgrounds + frosted glass
-Three portrait photographs (`assets/photos/chapel|reception|canopy` in `.webp` with `.jpg` fallback, ~95–110 KB each) sit behind three existing sections. No wording, functionality or config changed.
+Three portrait photographs (`assets/photos/chapel|reception|canopy`, each as `-640.webp`, `-1000.webp` and a `-1000.jpg` fallback; ~50–95 KB) sit behind three existing sections. Each section paints a tiny blurred preview instantly; js/main.js fetches the real photo in idle time while the guest is on the opening screen and fades it in. The photos are cached for a year (vercel.json) and have no running animation. Text below the hero uses one soft rise-and-fade; the glass panels stay still. Budget phones get a solid ivory pane instead of live blur (`html.lite`).
 - **“I Do” (`#families`)** — chapel photograph; two ivory glass panels with an open window between them so the stained glass, cross and candles stay visible. The faint T & D watermark is hidden here.
 - **Countdown (`#countdown-section`)** — reception photograph; heading on a glass panel, each unit in its own glass card (2 × 2 on phones, 4 across from 480 px). Count-up and per-second transitions are the existing ones.
 - **Closing (`#thanks`)** — canopy photograph; blessing + signature on one panel, venue line and credit on a small one, the open drape and flowers left showing.

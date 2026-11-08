@@ -135,6 +135,10 @@
 
     <!-- 2 · Before we say "I do" + families (names and wording: js/config.js → families, text) -->
     <section class="section families photo-bg photo-bg--chapel" id="families" aria-label="Before we say I do — our families">
+      <picture class="photo-bg__pic" aria-hidden="true">
+        <source type="image/webp" data-srcset="assets/photos/chapel-640.webp 640w, assets/photos/chapel-1000.webp 1000w" sizes="(max-width: 480px) 100vw, 480px">
+        <img class="photo-bg__img" data-src="assets/photos/chapel-1000.jpg" alt="" width="1000" height="1500" decoding="async" draggable="false">
+      </picture>
       <div class="families__mark" aria-hidden="true"><span>T</span><span>D</span></div>
       <!-- Frosted-glass panel: keeps the wording readable over the chapel photograph (CSS: .photo-bg / .glass) -->
       <div class="glass glass--wide reveal" data-anim="panel">
@@ -191,6 +195,10 @@
 
     <!-- 3 · Countdown -->
     <section class="section countdown photo-bg photo-bg--reception" id="countdown-section">
+      <picture class="photo-bg__pic" aria-hidden="true">
+        <source type="image/webp" data-srcset="assets/photos/reception-640.webp 640w, assets/photos/reception-1000.webp 1000w" sizes="(max-width: 480px) 100vw, 480px">
+        <img class="photo-bg__img" data-src="assets/photos/reception-1000.jpg" alt="" width="1000" height="1500" decoding="async" draggable="false">
+      </picture>
       <div class="glass glass--head reveal" data-anim="panel">
         <p class="eyebrow reveal" data-anim="fade" data-cfg="text.countdownEyebrow"></p>
         <h2 class="title reveal" data-anim="settle" style="--d:.12s" data-cfg="text.countdownTitle"></h2>
@@ -298,6 +306,10 @@
 
     <!-- 5 · Closing message -->
     <section class="section final photo-bg photo-bg--canopy" id="thanks">
+      <picture class="photo-bg__pic" aria-hidden="true">
+        <source type="image/webp" data-srcset="assets/photos/canopy-640.webp 640w, assets/photos/canopy-1000.webp 1000w" sizes="(max-width: 480px) 100vw, 480px">
+        <img class="photo-bg__img" data-src="assets/photos/canopy-1000.jpg" alt="" width="1000" height="1500" decoding="async" draggable="false">
+      </picture>
       <div class="glass glass--close reveal" data-anim="panel">
       <div class="divider reveal" data-anim="unfold" aria-hidden="true"><img src="assets/botanical/divider.svg" alt="" loading="lazy"></div>
       <p class="thanks reveal" data-anim="fade" style="--d:.1s" data-cfg="text.thanks"></p>

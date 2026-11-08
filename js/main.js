@@ -152,7 +152,7 @@
       entries.forEach(function (e) {
         if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); }
       });
-    }, { threshold: 0.18, rootMargin: "0px 0px -6% 0px" });
+    }, { threshold: 0, rootMargin: "0px 0px -8% 0px" });
     els.forEach(function (el) { io.observe(el); });
     afterFonts(function () {
       if (hero) hero.classList.add("is-in");          // 1 · the atmosphere
@@ -1097,15 +1097,51 @@
    * 7. Gentle parallax — botanical details drift a few pixels against the scroll.
    *    One passive listener, one rAF per frame, only elements near the screen.
    * ------------------------------------------------------------------ */
-  /* 7b. Photographic backgrounds drift very slowly — only while they are on screen. */
+  /* 7b. Photographic backgrounds: fetched quietly while the guest is still on the opening screen
+         (idle time, after the page has loaded), decoded off-screen, then faded in over the tiny preview.
+         No animation runs on them afterwards, so scrolling stays smooth. */
   function initPhotoBg() {
-    var secs = $$(".photo-bg");
-    if (!secs.length) return;
-    if (reduceMotion || !("IntersectionObserver" in window)) return;
+    var pics = $$(".photo-bg__pic");
+    if (!pics.length) return;
+    var started = false;
+    function show(img) {
+      var done = function () { img.classList.add("is-loaded"); };
+      if (img.decode) img.decode().then(done, done); else done();
+    }
+    function loadAll() {
+      if (started) return;
+      started = true;
+      pics.forEach(function (pic) {
+        var img = $("img", pic), src = $("source", pic);
+        if (!img) return;
+        if (src && src.getAttribute("data-srcset")) { src.srcset = src.getAttribute("data-srcset"); }
+        img.addEventListener("load", function () { show(img); }, { once: true });
+        img.addEventListener("error", function () { /* keep the soft preview */ }, { once: true });
+        img.src = img.getAttribute("data-src");
+        if (img.complete && img.naturalWidth) show(img);
+      });
+    }
+    var kick = function () { (window.requestIdleCallback || function (f) { return setTimeout(f, 250); })(loadAll, { timeout: 1500 }); };
+    if (document.readyState === "complete") kick(); else window.addEventListener("load", kick, { once: true });
+    setTimeout(loadAll, 4000);                                   // safety net
+    // a guest who jumps straight to a section (#rsvp link) gets the photos immediately
+    if (location.hash) loadAll();
+  }
+
+  /* Budget phones: switch the live glass blur off (see html.lite in the CSS) */
+  function initLite() {
+    var mem = navigator.deviceMemory, cores = navigator.hardwareConcurrency;
+    if ((mem && mem <= 4) || (cores && cores <= 4)) document.documentElement.classList.add("lite");
+  }
+
+  /* The sprigs sway forever: pause that while they are off-screen */
+  function initSprigIdle() {
+    var els = $$(".sprig, .ornament");
+    if (!els.length || !("IntersectionObserver" in window)) return;
     var io = new IntersectionObserver(function (en) {
-      en.forEach(function (e) { e.target.classList.toggle("is-live", e.isIntersecting); });
-    }, { threshold: 0.05 });
-    secs.forEach(function (el) { io.observe(el); });
+      en.forEach(function (e) { e.target.classList.toggle("is-idle", !e.isIntersecting); });
+    }, { rootMargin: "80px" });
+    els.forEach(function (el) { io.observe(el); });
   }
 
   function initParallax() {
@@ -1143,6 +1179,8 @@
   initScrollCues();
   initContacts();
   initParallax();
+  initLite();
   initPhotoBg();
+  initSprigIdle();
   initIntro();
 })();

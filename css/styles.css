@@ -847,15 +847,15 @@ main { position: relative; z-index: 1; }
 .credit { margin: 1.1rem 0 0; }
 .credit__link {
   display: inline-flex; flex-direction: column; align-items: center; gap: .1rem; min-height: 44px; justify-content: center;
-  padding: .35rem 1.2rem .5rem; color: inherit; text-decoration: none; border-radius: 1.2rem;
+  padding: .25rem 1rem .35rem; color: inherit; text-decoration: none; border-radius: 1.2rem;
   -webkit-tap-highlight-color: transparent; transition: background var(--dur-fast) var(--ease), transform .3s var(--ease);
 }
 a.credit__link:active { transform: scale(.97); background: rgba(184, 153, 91, .12); }
 @media (hover: hover) { a.credit__link:hover { background: rgba(184, 153, 91, .1); } }
-.credit__lead { display: inline-flex; align-items: center; gap: .45em; font: 500 .62rem/1.6 var(--sans); letter-spacing: .24em; text-transform: uppercase; color: var(--ink-soft); opacity: .8; }
+.credit__lead { display: inline-flex; align-items: center; gap: .4em; font: 500 .5rem/1.6 var(--sans); letter-spacing: .2em; text-transform: uppercase; color: var(--ink-soft); opacity: .8; }
 .credit__heart { width: .95em; height: .95em; color: #b9788a; flex: none; }
-.credit__name { display: inline-flex; align-items: center; gap: .5rem; font: italic 500 1.28rem/1.3 var(--serif); letter-spacing: .02em; color: var(--sage-deep); padding-bottom: .12rem; border-bottom: 1px solid rgba(184, 153, 91, .6); }
-.credit__wa { width: .95em; height: .95em; color: var(--gold-deep); flex: none; }
+.credit__name { display: inline-flex; align-items: center; gap: .4rem; font: italic 500 .98rem/1.3 var(--serif); letter-spacing: .02em; color: var(--sage-deep); padding-bottom: .08rem; border-bottom: 1px solid rgba(184, 153, 91, .6); }
+.credit__wa { width: .85em; height: .85em; color: var(--gold-deep); flex: none; }
 a.credit__link:hover .credit__name, a.credit__link:active .credit__name { border-color: var(--gold); }
 
 /* "Scroll" hint at the end of the first sections */
@@ -1074,19 +1074,21 @@ a.credit__link:hover .credit__name, a.credit__link:active .credit__name { border
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   background-color: var(--cream);
 }
-/* the photograph: webp first, jpeg fallback; a very slow drift (paused off-screen by js/main.js) */
+/* the photograph: a tiny blurred preview paints at once (no empty cream flash); the real photo is an <img>
+   that js/main.js fetches quietly while the guest is still on the opening screen, then fades in over it. */
 .photo-bg::before {
-  content: ""; position: absolute; inset: -3%; z-index: -2;
+  content: ""; position: absolute; inset: 0; z-index: -3;
   background-color: var(--cream);
-  background-image: var(--photo-jpg);
-  background-image: image-set(var(--photo-webp) type("image/webp"), var(--photo-jpg) type("image/jpeg"));
+  background-image: var(--photo-lqip);
   background-size: cover; background-position: var(--photo-pos); background-repeat: no-repeat;
-  filter: saturate(.94) brightness(1.02);
-  transform: scale(1.03);
-  animation: photoDrift 46s ease-in-out infinite alternate;
-  animation-play-state: paused;
 }
-.photo-bg.is-live::before { animation-play-state: running; }
+.photo-bg__pic { position: absolute; inset: 0; z-index: -2; display: block; overflow: hidden; pointer-events: none; }
+.photo-bg__img {
+  display: block; width: 100%; height: 100%; object-fit: cover; object-position: var(--photo-pos);
+  opacity: 0; transition: opacity .8s ease-out; filter: saturate(.94) brightness(1.02);
+  -webkit-user-select: none; user-select: none;
+}
+.photo-bg__img.is-loaded { opacity: 1; }
 /* a light ivory veil (not a wash) + soft ivory edges that melt into the neighbouring sections */
 .photo-bg::after {
   content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
@@ -1094,13 +1096,9 @@ a.credit__link:hover .credit__name, a.credit__link:active .credit__name { border
     linear-gradient(var(--ivory) 0, rgba(250, 247, 239, 0) 9%, rgba(250, 247, 239, 0) 91%, var(--ivory) 100%),
     linear-gradient(rgba(250, 247, 239, .2), rgba(250, 247, 239, .2));
 }
-.photo-bg--chapel    { --photo-webp: url("../assets/photos/chapel.webp");    --photo-jpg: url("../assets/photos/chapel.jpg");    --photo-pos: 42% 50%; }
-.photo-bg--reception { --photo-webp: url("../assets/photos/reception.webp"); --photo-jpg: url("../assets/photos/reception.jpg"); --photo-pos: 50% 40%; }
-.photo-bg--canopy    { --photo-webp: url("../assets/photos/canopy.webp");    --photo-jpg: url("../assets/photos/canopy.jpg");    --photo-pos: 50% 50%; }
-@keyframes photoDrift {
-  from { transform: scale(1.03) translate3d(0, 0, 0); }
-  to   { transform: scale(1.075) translate3d(-1.2%, -.8%, 0); }
-}
+.photo-bg--chapel    { --photo-lqip: url("data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAA0JCgsKCA0LCgsODg0PEyAVExISEyccHhcgLikxMC4pLSwzOko+MzZGNywtQFdBRkxOUlNSMj5aYVpQYEpRUk//2wBDAQ4ODhMREyYVFSZPNS01T09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT0//wAARCAAeABQDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwDVgOERc5BXOfxxWlBGktrsYHJGc/hWfCkRtBPa5Ybfu/rV2KYJa7yTuA6en4VwqSR1tXNeziRbVFGSAKKyUu5NgKNgHsw5oqlNEuDZhaZqMtvbQLJCqwvxuQZJH+NahYiEOCQC3GeciodKtIn0Mowz5QOD74q0jh7RGCgDA4rPqWlYimuS0mVtmcEDkcCippzHlcoPuiiizHof/9k="); --photo-pos: 42% 50%; }
+.photo-bg--reception { --photo-lqip: url("data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAA0JCgsKCA0LCgsODg0PEyAVExISEyccHhcgLikxMC4pLSwzOko+MzZGNywtQFdBRkxOUlNSMj5aYVpQYEpRUk//2wBDAQ4ODhMREyYVFSZPNS01T09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT0//wAARCAAeABQDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwDoYJMoJ5uQQMDGMVNFIE3FwNzHOfWsWC5laO32WQCkAMx7YPatSOLz0LTx7fm+leZc7kyws+0YdR14+lFQ3VjcecfLlCrjpRSuyrooxi5txGyIrRngrnp61ZMsk6thw8TY2hTgioLa48uUwtudWPBJ5xmpZovLnDIqhM9BxVqJFy4L1SoB3rtG3G09qKgFo0nz+ZjPair5Auf/2Q=="); --photo-pos: 50% 40%; }
+.photo-bg--canopy    { --photo-lqip: url("data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAA0JCgsKCA0LCgsODg0PEyAVExISEyccHhcgLikxMC4pLSwzOko+MzZGNywtQFdBRkxOUlNSMj5aYVpQYEpRUk//2wBDAQ4ODhMREyYVFSZPNS01T09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT0//wAARCAAeABQDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwDV0e4iuLd3QkopyA5zya2Is7RuUoehyc5rP0bTUW2w6jC9D6iriNsXG7p0zXBHudZsRquwcUVinUJwxBgc4OOlFWqqJ5GC75LBRbttk4dc9DTZbdpH2yg54xtzVTT7sXLlYwyR8bR3GK10lPCk596iKuX5hbsTF6YJHIop8cmFOR3oquUR/9k="); --photo-pos: 50% 50%; }
 
 /* --- the glass --- */
 .glass {
@@ -1108,8 +1106,8 @@ a.credit__link:hover .credit__name, a.credit__link:active .credit__name { border
   padding: clamp(1.6rem, 6vw, 2.4rem) clamp(1.1rem, 5vw, 2rem);
   border-radius: 1.6rem;
   background: rgba(252, 249, 241, .68);
-  -webkit-backdrop-filter: blur(14px) saturate(1.1);
-          backdrop-filter: blur(14px) saturate(1.1);
+  -webkit-backdrop-filter: blur(9px);
+          backdrop-filter: blur(9px);
   border: 1px solid rgba(255, 255, 255, .62);
   box-shadow: 0 18px 44px -22px rgba(60, 52, 30, .38), inset 0 1px 0 rgba(255, 255, 255, .7);
 }
@@ -1156,9 +1154,7 @@ a.credit__link:hover .credit__name, a.credit__link:active .credit__name { border
 html.js .countdown .cd::before, html.js .countdown .cd::after, .countdown .cd__item + .cd__item::before { display: none; }
 .photo-bg .cd__item {
   padding: 1.15rem .4rem 1rem; border-radius: 1.3rem;
-  background: rgba(252, 249, 241, .66);
-  -webkit-backdrop-filter: blur(12px) saturate(1.1);
-          backdrop-filter: blur(12px) saturate(1.1);
+  background: rgba(252, 249, 241, .8);
   border: 1px solid rgba(255, 255, 255, .62);
   box-shadow: 0 14px 34px -20px rgba(60, 52, 30, .4), inset 0 1px 0 rgba(255, 255, 255, .7);
 }
@@ -1167,8 +1163,7 @@ html.js .countdown .cd::before, html.js .countdown .cd::after, .countdown .cd__i
 .photo-bg .cd__done { padding: .9rem 1.2rem; border-radius: 1.2rem; background: rgba(252, 249, 241, .8); color: var(--glass-ink); font-weight: 600; }
 .photo-bg > .cue {
   margin-top: 1.4rem; padding: .7rem 1.5rem .6rem; border-radius: 1.6rem;
-  background: rgba(252, 249, 241, .62);
-  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  background: rgba(252, 249, 241, .78);
   border: 1px solid rgba(255, 255, 255, .6);
 }
 @media (min-width: 480px) {
@@ -1190,7 +1185,6 @@ html.js .countdown .cd::before, html.js .countdown .cd::after, .countdown .cd__i
 
 /* Desktop: the paper column already sits behind the sections; keep the photographs from stretching */
 @media (min-width: 900px) {
-  .photo-bg::before { inset: -2%; background-position: var(--photo-pos); }
 }
 @media (max-width: 359px) {
   .final.photo-bg .closing-line { letter-spacing: .12em; text-indent: .12em; font-size: .6rem; }
@@ -1199,5 +1193,57 @@ html.js .countdown .cd::before, html.js .countdown .cd::after, .countdown .cd__i
   .photo-bg .families__card + .families__card { border-left: 0; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .photo-bg::before { animation: none !important; transform: scale(1.03); }
+  .photo-bg__img { transition: none; }
 }
+
+
+/* --------------------------------------------------------------------------
+   v18 — smooth, lag-free motion for every section below the hero
+   · text uses ONE simple motion (soft rise + fade, short stagger) — no blur filters, no scaling
+   · frosted panels stay still (never animated or faded): only the words inside them move
+   · only opacity + transform are animated, so it stays on the GPU and never janks
+   -------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: no-preference) {
+  :root { --ease-out: cubic-bezier(.22, .8, .3, 1); }
+
+  html.js .section .reveal[data-anim="fade"],
+  html.js .section .reveal[data-anim="settle"],
+  html.js .section .reveal[data-anim="focus"] {
+    opacity: 0; transform: translate3d(0, 16px, 0); filter: none;
+  }
+  html.js .section .reveal[data-anim="fade"].in,
+  html.js .section .reveal[data-anim="settle"].in,
+  html.js .section .reveal[data-anim="focus"].in {
+    opacity: 1; transform: none; filter: none;
+    transition: opacity .7s ease-out calc(var(--d, 0s) * .55), transform .85s var(--ease-out) calc(var(--d, 0s) * .55);
+  }
+
+  /* the glass panels themselves are always in place; their contents reveal */
+  html.js .section .glass.reveal[data-anim="panel"],
+  html.js .section .glass.reveal[data-anim="panel"].in { opacity: 1; transform: none; transition: none; }
+
+  /* names / big numerals: same rise, a touch quicker */
+  html.js .section .reveal[data-anim="mask"].in > .mask__in {
+    transition: transform .95s var(--ease-out) calc(var(--d, 0s) * .6), opacity .01s linear calc(var(--d, 0s) * .6);
+  }
+  html.js .section .reveal[data-anim="side-l"].in, html.js .section .reveal[data-anim="side-r"].in {
+    transition: opacity .7s ease-out calc(var(--d, 0s) * .6), transform .9s var(--ease-out) calc(var(--d, 0s) * .6);
+  }
+  html.js .section .reveal[data-anim="line"].in { transition: opacity .6s ease-out calc(var(--d, 0s) * .6), transform .9s var(--ease-out) calc(var(--d, 0s) * .6); }
+  html.js .section .divider.reveal[data-anim="unfold"].in img {
+    transition: opacity .7s ease-out calc(var(--d, 0s) * .6), clip-path 1.1s var(--ease-out) calc(var(--d, 0s) * .6), transform 1.1s var(--ease-out) calc(var(--d, 0s) * .6);
+  }
+  html.js .section .reveal[data-anim="grow"].in { transition: opacity .9s ease-out calc(var(--d, 0s) * .5), transform 1.3s var(--ease-out) calc(var(--d, 0s) * .5); }
+  html.js .section .reveal[data-anim="seq"] .cd__item { transform: translate3d(0, 12px, 0); }
+  html.js .section .reveal[data-anim="seq"].in .cd__item {
+    transition: opacity .65s ease-out calc(var(--d, 0s) + var(--i, 0) * .08s), transform .8s var(--ease-out) calc(var(--d, 0s) + var(--i, 0) * .08s);
+  }
+  /* the RSVP form lifts in with the same softness */
+  html.js .section .reveal[data-anim="panel"].in:not(.glass) { transition: opacity .8s ease-out calc(var(--d, 0s) * .6), transform 1s var(--ease-out) calc(var(--d, 0s) * .6); }
+
+  /* the endless sprig sway is paused while off-screen (js adds .is-idle) */
+  .sprig.is-idle, .ornament.is-idle { animation-play-state: paused; }
+}
+
+/* Older / budget phones: swap the live blur for a solid ivory pane (identical look, zero GPU cost) */
+html.lite .glass { -webkit-backdrop-filter: none; backdrop-filter: none; background: rgba(252, 249, 241, .84); }
