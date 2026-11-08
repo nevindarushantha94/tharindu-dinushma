@@ -38,6 +38,11 @@
 
   <!-- Flags: js enabled; show the opening video unless the link targets a section (#rsvp etc.) -->
   <script>document.documentElement.className = "js" + (location.hash ? "" : " intro-active");</script>
+  <!-- Vercel Web Analytics (plain-HTML setup: no npm package or build step needed).
+       The script is served by Vercel itself at /_vercel/insights/script.js once Web Analytics is
+       enabled for the project; it simply 404s harmlessly anywhere else (e.g. a local preview). -->
+  <script>window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };</script>
+  <script defer src="/_vercel/insights/script.js"></script>
   <script src="js/config.js"></script>
   <script src="js/logic.js" defer></script>
   <script src="js/main.js" defer></script>
