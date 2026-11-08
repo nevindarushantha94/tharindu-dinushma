@@ -28,7 +28,7 @@
 
   <!-- Opening poster: fetched first so the envelope is on screen at first paint.
        Keep the ?v= in step with video.version in js/config.js (also on #introPoster below). -->
-  <link rel="preload" as="image" href="assets/video/poster.jpg?v=2" fetchpriority="high">
+  <link rel="preload" as="image" href="assets/video/poster.jpg?v=3" fetchpriority="high">
   <!-- Fonts are self-hosted (assets/fonts, declared in css/styles.css). Only the three faces the
        opening button and the hero names need are preloaded; the rest load as they are used. -->
   <link rel="preload" as="font" type="font/woff2" href="assets/fonts/jost-latin-500-normal.woff2" crossorigin>
@@ -62,7 +62,7 @@
              disablepictureinpicture disableremoteplayback tabindex="-1" aria-hidden="true"></video>
 
       <!-- Shown on top of the video until the video is actually rendering frames -->
-      <img id="introPoster" class="intro__poster" alt="" decoding="async" fetchpriority="high" src="assets/video/poster.jpg?v=2">
+      <img id="introPoster" class="intro__poster" alt="" decoding="async" fetchpriority="high" src="assets/video/poster.jpg?v=3">
 
       <!-- Shown only when the poster is missing, or the video cannot play -->
       <div class="intro__fallback" aria-hidden="true">
@@ -76,7 +76,7 @@
       <button id="introOpen" class="btn btn--ghost intro__open" type="button">
         <span class="intro__open-label">Tap to Open Invitation</span>
       </button>
-      <button id="introSkip" class="intro__skip" type="button">Skip</button>
+      <button id="introSkip" class="intro__skip" type="button" aria-label="Skip intro"><span data-cfg="text.skipIntro">Skip Intro</span></button>
     </div>
   </div>
 
@@ -127,16 +127,22 @@
     </section>
 
     <!-- 2 · Before we say "I do" + families (names and wording: js/config.js → families, text) -->
-    <section class="section families" id="families" aria-label="Before we say I do — our families">
+    <section class="section families photo-bg photo-bg--chapel" id="families" aria-label="Before we say I do — our families">
       <div class="families__mark" aria-hidden="true"><span>T</span><span>D</span></div>
+      <!-- Frosted-glass panel: keeps the wording readable over the chapel photograph (CSS: .photo-bg / .glass) -->
+      <div class="glass glass--wide reveal" data-anim="panel">
       <div class="divider reveal" data-anim="unfold" aria-hidden="true"><img src="assets/botanical/divider.svg" alt="" loading="lazy"></div>
       <p class="eyebrow reveal" data-anim="fade" data-cfg="text.familiesEyebrow"></p>
       <h2 class="families__heading reveal" data-anim="focus" style="--d:.12s" data-cfg="text.familiesHeading"></h2>
       <p class="families__quote reveal" data-anim="fade" style="--d:.3s" data-cfg="text.familiesQuote"></p>
+      </div>
+      <!-- second panel: the open space between the two lets the stained glass, cross and candles show -->
+      <div class="glass glass--wide glass--families reveal" data-anim="panel">
       <p class="eyebrow families__together reveal" data-anim="fade" style="--d:.1s" data-cfg="text.familiesTogether"></p>
       <div id="familiesRow" class="families__row"></div>
       <p class="families__invite reveal" data-anim="fade" style="--d:.2s" data-cfg="text.familiesInvite"></p>
       <p class="cue reveal" data-anim="fade" style="--d:.2s" aria-hidden="true"><span class="cue__text" data-cfg="text.scrollCue"></span><span class="cue__line"></span></p>
+      </div>
     </section>
 
     <!-- 3 · Details -->
@@ -177,9 +183,11 @@
     </section>
 
     <!-- 3 · Countdown -->
-    <section class="section countdown" id="countdown-section">
-      <p class="eyebrow reveal" data-anim="fade" data-cfg="text.countdownEyebrow"></p>
-      <h2 class="title reveal" data-anim="settle" style="--d:.12s" data-cfg="text.countdownTitle"></h2>
+    <section class="section countdown photo-bg photo-bg--reception" id="countdown-section">
+      <div class="glass glass--head reveal" data-anim="panel">
+        <p class="eyebrow reveal" data-anim="fade" data-cfg="text.countdownEyebrow"></p>
+        <h2 class="title reveal" data-anim="settle" style="--d:.12s" data-cfg="text.countdownTitle"></h2>
+      </div>
 
       <div id="countdown" class="cd reveal" data-anim="seq" style="--d:.3s" role="timer" aria-live="off">
         <div class="cd__item"><span class="cd__num" data-unit="days">00</span><span class="cd__label">Days</span></div>
@@ -282,7 +290,8 @@
     </section>
 
     <!-- 5 · Closing message -->
-    <section class="section final" id="thanks">
+    <section class="section final photo-bg photo-bg--canopy" id="thanks">
+      <div class="glass glass--close reveal" data-anim="panel">
       <div class="divider reveal" data-anim="unfold" aria-hidden="true"><img src="assets/botanical/divider.svg" alt="" loading="lazy"></div>
       <p class="thanks reveal" data-anim="fade" style="--d:.1s" data-cfg="text.thanks"></p>
       <p class="withlove reveal" data-anim="fade" style="--d:.45s" data-cfg="text.withLove"></p>
@@ -291,10 +300,13 @@
         <span class="sig-amp reveal" data-anim="fade" style="--d:.95s">&amp;</span>
         <span class="sig reveal" data-anim="mask" style="--d:1.05s"><span class="mask__in" data-cfg="couple.second"></span></span>
       </p>
+      </div>
       <img class="ornament reveal" data-anim="grow" data-parallax="0.04" style="--d:1.4s" src="assets/botanical/sprig.svg" alt="" aria-hidden="true" loading="lazy" decoding="async" width="90" height="170">
+      <div class="glass glass--fine reveal" data-anim="panel">
 
       <p id="closingLine" class="closing-line"></p>
       <p id="credit" class="credit"></p>
+      </div>
     </section>
   </main>
 

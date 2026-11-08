@@ -97,7 +97,13 @@ window.WEDDING_CONFIG = {
   video: {
     src: "assets/video/opening.mp4",
     poster: "assets/video/poster.jpg",
-    version: "2",
+    version: "3",          // bump when the video file changes (cache-busting)
+    posterVersion: "3",    // poster = first frame of opening.mp4; keep in step with the ?v= in index.html
+    // The opening video plays WITH its own sound (started by the OPEN INVITATION tap).
+    // When it ends, or when the guest taps SKIP INTRO, its sound is faded out over these
+    // many milliseconds and only then does the wedding music take over (never both at once).
+    fadeOutMs: 600,        // fade-out of the video's sound when it is skipped
+    endFadeMs: 300,        // safety fade if the video is cut short for any other reason
     // Only used AFTER the guest has tapped, if the video cannot load or play:
     // the invitation then opens by itself after this many milliseconds.
     fallbackAutoOpenMs: 2500
@@ -159,6 +165,9 @@ window.WEDDING_CONFIG = {
     scrollCue: "Scroll",
     musicOn: "Music on",
     musicOff: "Music off",
+    soundOn: "Sound on",
+    soundOff: "Sound off",
+    skipIntro: "Skip Intro",
     // Before we say "I do" + families
     familiesEyebrow: "Before we say",
     familiesHeading: "“I Do”…",

@@ -121,6 +121,19 @@ html:not(.intro-active) .intro:not(.is-leaving) { display: none; }
 }
 .intro.is-playing .intro__poster, .intro.is-fallback .intro__poster, .intro.no-poster .intro__poster { opacity: 0; visibility: hidden; transition: opacity 1s var(--ease), visibility 0s linear 1s; }
 
+/* Taller than 9:16 (e.g. a phone in full screen): the stage is the whole screen. Instead of cropping the
+   sides of the film, show it whole and feather its top and bottom edges into the ivory page. */
+@media (max-aspect-ratio: 9/16) {
+  .intro__video, .intro__poster {
+    inset: auto; left: 0; top: 50%; translate: 0 -50%;
+    width: 100%; height: auto; aspect-ratio: 9 / 16; object-fit: cover;   /* the box is exactly 9:16: nothing is cropped or stretched */
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 7%, #000 93%, transparent 100%);
+            mask-image: linear-gradient(to bottom, transparent 0, #000 7%, #000 93%, transparent 100%);
+  }
+  /* the poster's feathered edges must not show the still, not-yet-playing first frame behind it */
+  .intro:not(.is-playing) .intro__video { opacity: 0; }
+}
+
 /* wide screens: soft side panels so the 9:16 video reads as intentional */
 @media (min-aspect-ratio: 3/4) {
   .intro { background: radial-gradient(circle at 50% 50%, var(--paper), var(--cream)); }
@@ -167,16 +180,21 @@ html:not(.intro-active) .intro:not(.is-leaving) { display: none; }
 /* the button leaves together with the poster, once the video is really playing */
 .intro.is-playing .intro__open { opacity: 0; visibility: hidden; transition: opacity .8s var(--ease), visibility 0s linear .8s; }
 .intro__skip {
-  position: absolute; top: max(1.1rem, env(safe-area-inset-top)); right: 1.1rem;
-  background: none; border: 0; padding: .5rem .6rem;
-  font: 500 .68rem/1 var(--sans); letter-spacing: .28em; text-transform: uppercase;
-  color: var(--sage-deep);
+  position: absolute; z-index: 3;
+  top: max(1.1rem, calc(env(safe-area-inset-top, 0px) + .5rem)); right: max(1.1rem, env(safe-area-inset-right, 0px));
+  min-height: 40px; padding: .55rem 1.05rem .55rem calc(1.05rem + .28em);
+  font: 500 .64rem/1 var(--sans); letter-spacing: .28em; text-transform: uppercase; white-space: nowrap;
+  color: var(--sage-deep); cursor: pointer;
+  background: rgba(253, 251, 246, .82); border: 1px solid rgba(184, 153, 91, .6); border-radius: 999px;
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+  box-shadow: 0 8px 22px -14px rgba(42, 47, 42, .55);
+  -webkit-tap-highlight-color: transparent;
   opacity: 0; visibility: hidden;
-  transition: opacity 1s ease, visibility 0s linear 1s;
-  cursor: pointer; z-index: 3;
+  transition: opacity .9s ease, visibility 0s linear .9s, background .3s ease, transform .3s var(--ease);
 }
-.intro.show-skip:not(.is-fallback) .intro__skip { opacity: .7; visibility: visible; transition-delay: 0s; }
-.intro__skip:hover, .intro__skip:focus-visible { opacity: 1 !important; }
+.intro__skip:active { transform: scale(.96); }
+.intro.show-skip:not(.is-fallback) .intro__skip { opacity: .92; visibility: visible; transition-delay: 0s; }
+.intro__skip:hover, .intro__skip:focus-visible { opacity: 1 !important; background: rgba(253, 251, 246, .96); }
 
 
 /* --------------------------------------------------------------------------
@@ -1048,4 +1066,146 @@ a.credit__link:hover .credit__name, a.credit__link:active .credit__name { border
   .hero__dust { display: none; }
   .portrait__photo::before { display: none; }
   .scroll-progress { transition: none; }
+}
+
+
+/* --------------------------------------------------------------------------
+   v17 — photographic backgrounds + frosted ivory glass
+   Three portrait photographs sit behind "Before we say I do", the countdown and the
+   closing message. Text always sits on a warm-ivory glass panel, never straight on the photo.
+   -------------------------------------------------------------------------- */
+.photo-bg {
+  --photo-pos: 50% 50%;
+  --glass-ink: #2b3a30;          /* deep grey-green */
+  --glass-ink-soft: #435247;
+  isolation: isolate;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  background-color: var(--cream);
+}
+/* the photograph: webp first, jpeg fallback; a very slow drift (paused off-screen by js/main.js) */
+.photo-bg::before {
+  content: ""; position: absolute; inset: -3%; z-index: -2;
+  background-color: var(--cream);
+  background-image: var(--photo-jpg);
+  background-image: image-set(var(--photo-webp) type("image/webp"), var(--photo-jpg) type("image/jpeg"));
+  background-size: cover; background-position: var(--photo-pos); background-repeat: no-repeat;
+  filter: saturate(.94) brightness(1.02);
+  transform: scale(1.03);
+  animation: photoDrift 46s ease-in-out infinite alternate;
+  animation-play-state: paused;
+}
+.photo-bg.is-live::before { animation-play-state: running; }
+/* a light ivory veil (not a wash) + soft ivory edges that melt into the neighbouring sections */
+.photo-bg::after {
+  content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background:
+    linear-gradient(var(--ivory) 0, rgba(250, 247, 239, 0) 9%, rgba(250, 247, 239, 0) 91%, var(--ivory) 100%),
+    linear-gradient(rgba(250, 247, 239, .2), rgba(250, 247, 239, .2));
+}
+.photo-bg--chapel    { --photo-webp: url("../assets/photos/chapel.webp");    --photo-jpg: url("../assets/photos/chapel.jpg");    --photo-pos: 42% 50%; }
+.photo-bg--reception { --photo-webp: url("../assets/photos/reception.webp"); --photo-jpg: url("../assets/photos/reception.jpg"); --photo-pos: 50% 40%; }
+.photo-bg--canopy    { --photo-webp: url("../assets/photos/canopy.webp");    --photo-jpg: url("../assets/photos/canopy.jpg");    --photo-pos: 50% 50%; }
+@keyframes photoDrift {
+  from { transform: scale(1.03) translate3d(0, 0, 0); }
+  to   { transform: scale(1.075) translate3d(-1.2%, -.8%, 0); }
+}
+
+/* --- the glass --- */
+.glass {
+  position: relative; width: 100%; max-width: 30rem;
+  padding: clamp(1.6rem, 6vw, 2.4rem) clamp(1.1rem, 5vw, 2rem);
+  border-radius: 1.6rem;
+  background: rgba(252, 249, 241, .68);
+  -webkit-backdrop-filter: blur(14px) saturate(1.1);
+          backdrop-filter: blur(14px) saturate(1.1);
+  border: 1px solid rgba(255, 255, 255, .62);
+  box-shadow: 0 18px 44px -22px rgba(60, 52, 30, .38), inset 0 1px 0 rgba(255, 255, 255, .7);
+}
+.glass--wide { max-width: 34rem; }
+.glass--head { max-width: 26rem; padding-top: 1.7rem; padding-bottom: .4rem; margin-bottom: 1.2rem; }
+.glass--head .title { margin-bottom: 1.1rem; }
+.glass--head .eyebrow { margin-bottom: 1rem; }
+.glass--close { max-width: 26rem; }
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass, .photo-bg .cd__item, .photo-bg > .cue { background: rgba(252, 249, 241, .9); }
+}
+/* the panel’s own children keep their reveal timing; the panel itself must not hide a tall section */
+.glass > .divider:first-child { margin-top: 0; }
+.glass > :last-child { margin-bottom: 0; }
+
+/* text on glass: deep charcoal / grey-green, no bright gold */
+.photo-bg .eyebrow { color: var(--glass-ink-soft); }
+.photo-bg .title, .photo-bg .families__heading { color: var(--glass-ink); }
+.photo-bg .families__quote, .photo-bg .families__invite, .photo-bg .families__relation { color: #2f3d33; }
+.photo-bg .families__name, .photo-bg .families__parents, .photo-bg .thanks { color: #232a25; }
+.photo-bg .withlove, .photo-bg .closing-line { color: var(--glass-ink-soft); opacity: 1; }
+.photo-bg .signoff { color: var(--glass-ink); }
+.photo-bg .cue__text { color: var(--glass-ink-soft); opacity: 1; }
+
+/* Before we say "I do": the T & D watermark would clutter the photograph */
+.families.photo-bg > .families__mark { display: none; }
+.families.photo-bg {
+  justify-content: flex-start; --photo-pos: 56% 50%;
+  padding-top: clamp(7.5rem, 36vw, 12rem); padding-bottom: clamp(3.4rem, 10vw, 5.4rem);
+}
+.families.photo-bg .glass + .glass { margin-top: clamp(10rem, 50vw, 15rem); }
+.families.photo-bg .families__quote { margin-bottom: 0; }
+.families.photo-bg .families__together { margin-bottom: 1.3rem; }
+.families.photo-bg .families__invite { margin-top: 1.9rem; }
+.families.photo-bg .cue { margin-top: 1.5rem; }
+@media (min-width: 900px) { .families.photo-bg { padding-top: 9rem; } .families.photo-bg .glass + .glass { margin-top: 12rem; } }
+
+/* Countdown: four (two on narrow phones) ivory glass cards */
+.countdown.photo-bg { background-image: none; min-height: min(100svh, 52rem); }
+.countdown.photo-bg .cd {
+  width: 100%; max-width: 30rem; padding: 0; gap: .65rem;
+  grid-template-columns: repeat(2, 1fr);
+}
+html.js .countdown .cd::before, html.js .countdown .cd::after, .countdown .cd__item + .cd__item::before { display: none; }
+.photo-bg .cd__item {
+  padding: 1.15rem .4rem 1rem; border-radius: 1.3rem;
+  background: rgba(252, 249, 241, .66);
+  -webkit-backdrop-filter: blur(12px) saturate(1.1);
+          backdrop-filter: blur(12px) saturate(1.1);
+  border: 1px solid rgba(255, 255, 255, .62);
+  box-shadow: 0 14px 34px -20px rgba(60, 52, 30, .4), inset 0 1px 0 rgba(255, 255, 255, .7);
+}
+.photo-bg .cd__num { color: #232a25; font-size: clamp(2.9rem, 15vw, 3.9rem); text-shadow: none; }
+.photo-bg .cd__label { color: var(--glass-ink-soft); font-size: .72rem; margin-top: .3rem; }
+.photo-bg .cd__done { padding: .9rem 1.2rem; border-radius: 1.2rem; background: rgba(252, 249, 241, .8); color: var(--glass-ink); font-weight: 600; }
+.photo-bg > .cue {
+  margin-top: 1.4rem; padding: .7rem 1.5rem .6rem; border-radius: 1.6rem;
+  background: rgba(252, 249, 241, .62);
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, .6);
+}
+@media (min-width: 480px) {
+  .countdown.photo-bg .cd { grid-template-columns: repeat(4, 1fr); gap: .6rem; max-width: 34rem; }
+  .photo-bg .cd__item { padding: 1.1rem .2rem .95rem; }
+  .photo-bg .cd__num { font-size: clamp(2.3rem, 8.6vw, 3.3rem); }
+  .photo-bg .cd__label { font-size: .66rem; letter-spacing: .12em; text-indent: .12em; }
+}
+
+/* Closing: lets the canopy's open space show around the message */
+.final.photo-bg { justify-content: flex-start; min-height: min(100svh, 54rem); padding-top: clamp(9rem, 44vw, 14rem); --photo-pos: 50% 50%; }
+.final.photo-bg .glass--close { max-width: 24rem; padding-bottom: 1.8rem; }
+.final.photo-bg .glass--fine { max-width: 24rem; padding: 1rem 1rem .8rem; border-radius: 1.3rem; background: rgba(252, 249, 241, .62); }
+.final.photo-bg .ornament { margin: 1.1rem auto 1.1rem; }
+.final.photo-bg .closing-line { margin-top: 0; }
+.final.photo-bg .credit { margin-top: .7rem; }
+.final.photo-bg .closing-line { white-space: pre-line; }
+.final.photo-bg .credit { margin-bottom: 0; }
+
+/* Desktop: the paper column already sits behind the sections; keep the photographs from stretching */
+@media (min-width: 900px) {
+  .photo-bg::before { inset: -2%; background-position: var(--photo-pos); }
+}
+@media (max-width: 359px) {
+  .final.photo-bg .closing-line { letter-spacing: .12em; text-indent: .12em; font-size: .6rem; }
+  .glass { padding-left: .9rem; padding-right: .9rem; border-radius: 1.3rem; }
+  .photo-bg .families__row { grid-template-columns: 1fr; row-gap: 1.1rem; }
+  .photo-bg .families__card + .families__card { border-left: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .photo-bg::before { animation: none !important; transform: scale(1.03); }
 }

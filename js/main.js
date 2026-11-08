@@ -224,7 +224,10 @@
     var target = typeof c.volume === "number" ? Math.max(0, Math.min(1, c.volume)) : 0.6;
     var fadeIn = c.fadeInMs > 0 ? c.fadeInMs : 2600;
     var fadeOut = c.fadeOutMs > 0 ? c.fadeOutMs : 900;
-    var wantOn = false;      // the guest's intent: music on (true) or muted (false)
+    var wantOn = false;      // the guest's intent: sound on (true) or muted (false)
+    var held = false;        // true while the opening video's own sound is playing: music waits
+    var primed = false;      // the audio element has been "unlocked" by the guest's tap
+    var prefCb = null;       // while held: told when the guest mutes / unmutes
     var loaded = false, failed = false;
     var level = 0;           // current fade level, 0..1 (multiplied by `target`)
     var fadeId = 0;
@@ -263,19 +266,24 @@
     var hintEl = $("#musicHint"), hintTimer = 0;
     function hint(on, ms, delay) {
       if (!hintEl) return;
+      var sound = held;      // during the opening film the button controls its sound, so the label says "Sound"
       clearTimeout(hintTimer);
       hintTimer = setTimeout(function () {
         if (!btn.classList.contains("is-visible")) return;
-        hintEl.textContent = (cfg.text && (on ? cfg.text.musicOn : cfg.text.musicOff)) || (on ? "Music on" : "Music off");
+        var T = cfg.text || {};
+        hintEl.textContent = sound ? (on ? T.soundOn : T.soundOff) || (on ? "Sound on" : "Sound off")
+                                   : (on ? T.musicOn : T.musicOff) || (on ? "Music on" : "Music off");
         hintEl.classList.add("is-shown");
         hintTimer = setTimeout(function () { hintEl.classList.remove("is-shown"); }, ms || 2200);
       }, delay || 0);
     }
 
     function setUi(on) {
+      var what = held ? "sound" : "music";
+      var lab = on ? "Mute " + what : (held || loaded ? "Unmute " + what : "Play background music");
       btn.setAttribute("aria-pressed", on ? "true" : "false");
-      btn.setAttribute("aria-label", on ? "Mute music" : (loaded ? "Unmute music" : "Play background music"));
-      btn.title = on ? "Mute music" : (loaded ? "Unmute music" : "Play background music");
+      btn.setAttribute("aria-label", lab);
+      btn.title = lab;
     }
 
     // iOS: route the element through a gain node so the fade is audible.
@@ -327,19 +335,55 @@
     function on() {
       if (failed) return;
       wantOn = true; setUi(true);
+      if (held) { if (prefCb) prefCb(true); return; }     // opening film still playing: just remember the choice
       if (!loaded) level = 0;
       play();
     }
     function off() {
       wantOn = false; setUi(false);
+      if (held) { if (prefCb) prefCb(false); return; }
       fadeTo(0, fadeOut, function () { if (!wantOn) { try { audio.pause(); } catch (e) {} } });
+    }
+
+    /* Called inside the OPEN INVITATION tap. It "unlocks" the music element for mobile browsers
+       (play + immediate pause, silent, inside the gesture) so the music can start later, by itself,
+       when the opening film hands over. Nothing is audible here, and the music stays on hold. */
+    function begin(onPreference) {
+      if (failed) return;
+      held = true; prefCb = onPreference || null;
+      wantOn = true; setUi(true);
+      if (primed) return;
+      primed = true;
+      if (!loaded) {
+        loaded = true;
+        audio.loop = true;
+        audio.preload = "auto";
+        audio.src = versioned(c.src);
+      }
+      level = 0;
+      setupGain();
+      wake();
+      setLevel(0);
+      try {
+        var p = audio.play();
+        audio.pause();                                   // silent, instant: only the permission is kept
+        if (p && p.catch) p.catch(function () { /* interrupted by pause(): expected */ });
+      } catch (e) {}
+    }
+    /* The opening film's sound is gone: the wedding music takes over (if the guest has not muted). */
+    function release() {
+      if (!held) return;
+      held = false; prefCb = null;
+      setUi(wantOn);
+      if (failed) return;
+      if (wantOn) { setLevel(0); play(); hint(true, 3200, 1500); }
     }
 
     btn.addEventListener("click", function () { if (wantOn) { off(); hint(false, 1800); } else { on(); hint(true, 1800); } });
 
     // Respect the device: pause when the page is hidden, pick up again (if still wanted) when it returns.
     document.addEventListener("visibilitychange", function () {
-      if (failed || !loaded) return;
+      if (failed || !loaded || held) return;
       if (document.hidden) { try { audio.pause(); } catch (e) {} }
       else if (wantOn) {
         wake();
@@ -350,12 +394,14 @@
 
     setUi(false);
     return {
-      start: on,                                         // called from the "Tap to Open Invitation" tap
+      begin: begin,                                      // called from the "Tap to Open Invitation" tap
+      release: release,                                  // called when the opening film hands over
+      wants: function () { return wantOn; },
       showControl: function () {
         if (failed) return;
         btn.hidden = false;
         requestAnimationFrame(function () { requestAnimationFrame(function () { btn.classList.add("is-visible"); }); });
-        if (wantOn) hint(true, 3200, 1500);   // first time the control appears: say that the music is playing
+        if (wantOn && !held) hint(true, 3200, 1500);   // first time the control appears: say that the music is playing
       }
     };
   }
@@ -397,18 +443,20 @@
     var finished = false;
     var timers = {};
 
-    function versioned(url) {
+    function versioned(url, ver) {
       if (!url) return "";
-      return url + (cfgV.version ? (url.indexOf("?") > -1 ? "&" : "?") + "v=" + encodeURIComponent(cfgV.version) : "");
+      ver = ver || cfgV.version;
+      return url + (ver ? (url.indexOf("?") > -1 ? "&" : "?") + "v=" + encodeURIComponent(ver) : "");
     }
     function clearAll() { Object.keys(timers).forEach(function (k) { clearTimeout(timers[k]); }); }
 
     /* Move on to the invitation. Only ever reached after the guest's tap
        (video ended / video failed / reduced-motion), or via the Skip button. */
-    function finish() {
+    function finish(reason) {
       if (finished) return;
       finished = true;
       clearAll();
+      handOver(reason);                      // video sound out, then the wedding music in — exactly once
       intro.classList.add("is-leaving");
       root.classList.remove("intro-active");
       main.inert = false;
@@ -419,6 +467,38 @@
         try { video.pause(); video.removeAttribute("src"); video.load(); } catch (e) {}
         intro.remove();
       }, reduceMotion ? 50 : 1500);
+    }
+
+    /* ---- Audio hand-over: video sound -> wedding music, never both at once ----
+       1. the video's own sound is faded out (≈0.3–0.6 s) — where the browser allows it;
+          iOS Safari ignores media volume, so there it is muted at once instead
+       2. only when it is silent is the video paused, and the music released (it fades in gently)
+       A natural "ended" has nothing left to fade, so the music starts immediately.
+       Runs once (finish() is guarded). If the guest muted, the music stays muted. */
+    var volumeAdjustable = (function () {
+      try { video.volume = 0.5; var ok = Math.abs(video.volume - 0.5) < 0.01; video.volume = 1; return ok; }
+      catch (e) { return false; }
+    })();
+    function handOver(reason) {
+      var released = false;
+      function music() {
+        if (released) return;
+        released = true;
+        try { video.pause(); } catch (e) {}
+        video.muted = true;
+        if (musicCtl) musicCtl.release();
+      }
+      var audible = opened && started && !video.paused && !video.ended && !video.muted && video.volume > 0.01;
+      if (!audible) { music(); return; }
+      if (!volumeAdjustable) { video.muted = true; music(); return; }
+      var ms = reason === "skip" ? (cfgV.fadeOutMs > 0 ? cfgV.fadeOutMs : 600) : (cfgV.endFadeMs > 0 ? cfgV.endFadeMs : 300);
+      var from = video.volume, t0 = performance.now();
+      (function step(now) {
+        var k = Math.min(1, (now - t0) / ms);
+        try { video.volume = Math.max(0, from * (1 - k)); } catch (e) {}
+        if (k < 1) requestAnimationFrame(step); else music();
+      })(t0);
+      setTimeout(music, ms + 400);           // safety: a throttled tab must not hold the music back
     }
 
     /* Elegant fallback (video missing / unplayable). The guest has already tapped,
@@ -443,13 +523,13 @@
         // Safety net: if "ended" never fires, move on shortly after the clip should be over.
         timers.watchdog = setTimeout(finish, Math.max(0, video.duration - video.currentTime) * 1000 + 2500);
       }
-      timers.skip = setTimeout(function () { intro.classList.add("show-skip"); }, 1200);
+      timers.skip = setTimeout(function () { intro.classList.add("show-skip"); }, 700);
     }
 
     /* ---- Poster: already in the markup; JS only corrects it if the config points elsewhere ---- */
     if (cfgV.poster) {
       poster.addEventListener("error", function () { intro.classList.add("no-poster"); });
-      var wanted = versioned(cfgV.poster);
+      var wanted = versioned(cfgV.poster, cfgV.posterVersion);
       if (poster.getAttribute("src") !== wanted) poster.src = wanted;
     } else {
       intro.classList.add("no-poster");
@@ -457,7 +537,7 @@
 
     /* ---- Prepare the video (no playback): assign the source once, let the browser buffer ---- */
     video.muted = true;
-    video.defaultMuted = true;
+    video.defaultMuted = true;           // silent while it is only being buffered; the tap un-mutes it
     video.playsInline = true;
     video.setAttribute("playsinline", "");
     video.setAttribute("webkit-playsinline", "");
@@ -508,7 +588,7 @@
         revealVideo();
       }
     });
-    video.addEventListener("ended", function () { if (opened) finish(); });
+    video.addEventListener("ended", function () { if (opened) finish("ended"); });
     video.addEventListener("error", function () {
       failed = true;
       if (!opened) return;                 // before the tap: remembered, handled by the tap
@@ -527,10 +607,15 @@
       openBtn.disabled = true;
       openBtn.setAttribute("aria-busy", "true");
       intro.classList.add("is-opening");
-      if (musicCtl) musicCtl.start();   // music begins with the tap (gentle fade-in); the opening video itself is silent
+      // The tap is the one moment mobile browsers allow sound. The opening film plays WITH its own sound
+      // now; the wedding music is unlocked here but kept on hold until the film hands over.
+      video.defaultMuted = false;
+      video.muted = false;
+      video.volume = 1;
+      if (musicCtl) musicCtl.begin(function (wants) { video.muted = !wants; });   // the speaker button follows the guest's choice
 
       // No video configured, or the guest prefers reduced motion: skip the film.
-      if (!cfgV.src || reduceMotion) { cfgV.src ? finish() : fallback(); return; }
+      if (!cfgV.src || reduceMotion) { cfgV.src ? finish("skip") : fallback(); return; }
       if (failed) { fallback(); return; }
 
       // Play inside the tap itself — this is what lets iOS/Android start it. If the video was
@@ -560,9 +645,9 @@
     });
 
     // Skip is offered only once the film is playing; Escape works the same way.
-    skipBtn.addEventListener("click", function () { if (opened) finish(); });
+    skipBtn.addEventListener("click", function () { if (opened) finish("skip"); });
     document.addEventListener("keydown", function (e) {
-      if (e.key === "Escape" && opened && !finished) finish();
+      if (e.key === "Escape" && opened && !finished) finish("skip");
     });
 
     // Test/diagnostic hook (read-only state; no effect on behaviour)
@@ -983,6 +1068,17 @@
    * 7. Gentle parallax — botanical details drift a few pixels against the scroll.
    *    One passive listener, one rAF per frame, only elements near the screen.
    * ------------------------------------------------------------------ */
+  /* 7b. Photographic backgrounds drift very slowly — only while they are on screen. */
+  function initPhotoBg() {
+    var secs = $$(".photo-bg");
+    if (!secs.length) return;
+    if (reduceMotion || !("IntersectionObserver" in window)) return;
+    var io = new IntersectionObserver(function (en) {
+      en.forEach(function (e) { e.target.classList.toggle("is-live", e.isIntersecting); });
+    }, { threshold: 0.05 });
+    secs.forEach(function (el) { io.observe(el); });
+  }
+
   function initParallax() {
     if (reduceMotion || !window.requestAnimationFrame) return;
     var els = $$("[data-parallax]");
@@ -1018,5 +1114,6 @@
   initScrollCues();
   initContacts();
   initParallax();
+  initPhotoBg();
   initIntro();
 })();

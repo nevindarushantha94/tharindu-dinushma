@@ -10,7 +10,7 @@ js/logic.js         countdown / date / WhatsApp helpers (pure functions)
 js/main.js          tap-to-open intro, reveals, countdown, RSVP, contacts
 scripts/set-site-url.js   makes social-share tags absolute once you have your domain
 assets/social/      og-image.jpg  ← 1200×630 link-preview image
-assets/video/       opening.mp4            ← opening video (Google Flow)
+assets/video/       opening.mp4            ← opening video (plays WITH its own sound)
                     poster.jpg             ← frame shown while the opening video loads
                     background.mp4         ← looping forest background (silent)
                     background-poster.jpg  ← still frame used if the background can't play
@@ -18,6 +18,15 @@ assets/audio/       background-music.mp3   ← background music (128 kbps, plays
 assets/botanical/   divider.svg (sprig divider) · sprig.svg (single eucalyptus sprig ornament)
 vercel.json         caching + security headers
 ```
+
+## v17 — photographic backgrounds + frosted glass
+Three portrait photographs (`assets/photos/chapel|reception|canopy` in `.webp` with `.jpg` fallback, ~95–110 KB each) sit behind three existing sections. No wording, functionality or config changed.
+- **“I Do” (`#families`)** — chapel photograph; two ivory glass panels with an open window between them so the stained glass, cross and candles stay visible. The faint T & D watermark is hidden here.
+- **Countdown (`#countdown-section`)** — reception photograph; heading on a glass panel, each unit in its own glass card (2 × 2 on phones, 4 across from 480 px). Count-up and per-second transitions are the existing ones.
+- **Closing (`#thanks`)** — canopy photograph; blessing + signature on one panel, venue line and credit on a small one, the open drape and flowers left showing.
+- **CSS** — appended at the end of `css/styles.css` (`.photo-bg`, `.glass`). Glass = warm ivory ~68 %, `backdrop-filter: blur(14px)`, white hairline, soft shadow; a solid-ivory fallback is used where backdrop-filter is unsupported. Text is deep charcoal / grey-green.
+- **Motion** — slow background drift (46 s, up to 7 % scale), only while the section is on screen (`initPhotoBg()` in `js/main.js`); panels use the existing `panel` reveal. All off under *reduce motion*.
+- To change a photo: replace the matching `.webp` and `.jpg` (about 1000 × 1500) and adjust `--photo-pos` on `.photo-bg--chapel|reception|canopy`.
 
 ## v9 — premium experience refinement
 
@@ -36,7 +45,7 @@ Everything is layered on the existing design; no content, assets or RSVP flow ch
 - **RSVP:** selected attendance shows a small champagne tick; an invalid field is marked in a soft red and nudges once; after WhatsApp opens, a warm line is shown above the *press Send* note (`text.rsvpWarmYes / rsvpWarmNo` in `js/config.js`). The note still says the RSVP is not complete until the guest presses Send.
 - **Closing:** the signature is revealed as if written.
 - **Desktop (≥ 900px):** the invitation sits in an ivory paper column over the forest.
-- The opening poster is also preloaded in `index.html` — keep its `?v=` equal to `video.version`.
+- The opening poster is also preloaded in `index.html` — keep its `?v=` equal to `video.posterVersion`.
 - The opening button now has a solid ivory backing (the `.btn` rule used to make it transparent).
 
 ## Background music
@@ -140,3 +149,15 @@ The RSVP is a staged flow: **choose** (Joyfully Accept / Regretfully Decline) �
 
 ## What's new in v15
 - Directions button now uses the hotel's exact Google Maps pin (js/config.js → venue.coordinates).
+
+## What's new in v16 — new opening video with sound
+- `assets/video/opening.mp4` is the new 10-second film (720×1280, with its own audio). It was only cleaned up losslessly (metadata and padding removed, quick-start layout) — the picture and sound are untouched. `video.version` is now "3" so returning guests get the new file.
+- OPEN INVITATION starts the film with its sound. The wedding music is unlocked silently in that same tap but stays on hold.
+- SKIP INTRO (top-right, appears shortly after the film starts) is the only thing that skips; touching the screen elsewhere does nothing.
+- Hand-over (js/main.js → `handOver`): when the film ends, the music starts straight away; when skipped, the film's sound fades out over `video.fadeOutMs` (600 ms), then the film is paused and the music fades in. Never both at once, and it runs once.
+- The speaker button works during the film too (it mutes the film's sound and the music that follows). If the guest has muted, the music stays muted at the hand-over and afterwards.
+- On very tall phones (taller than 9:16) the film is shown whole with its top and bottom edges feathered into the ivory page, instead of being cropped at the sides.
+- Welcome screen (envelope poster and OPEN INVITATION button) is unchanged.
+
+## v17.1 — opening poster
+`assets/video/poster.jpg` is now the exact first frame of `assets/video/opening.mp4` (the stained-glass rose window), so the tap-to-open screen and the video start match with no visible jump. If you replace the opening video again, re-extract its first frame (`ffmpeg -i opening.mp4 -frames:v 1 poster.jpg`) and bump `video.posterVersion` plus the two `?v=` values in `index.html`.
