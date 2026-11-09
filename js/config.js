@@ -198,8 +198,12 @@ window.WEDDING_CONFIG = {
     sendLabel: "Send RSVP",
     sendSub: "via WhatsApp",
     contactEyebrow: "Prefer to reach us directly?",
+    venueCaption: "Where we will celebrate",
+    // RSVP confirmation (display only): {name} is the guest's first name as typed
+    rsvpThankName: "Thank you, {name}",
+    rsvpAcceptDetail: "We’ll see you on {date}",
     thanks: "Your presence will make our special day even more memorable.",
-    withLove: "With love and gratitude,",
+    withLove: "With love,",
     rsvpReadyTitle: "Your WhatsApp message is ready.",
     rsvpReadyBody: "Please press Send to confirm your response. Your RSVP is not complete until the message is sent."
   },

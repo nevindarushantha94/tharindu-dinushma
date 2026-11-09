@@ -1,4 +1,4 @@
-/* Tharindu & Dinushma — invitation behaviour (v19).
+/* Tharindu & Dinushma — invitation behaviour (v22).
    Sections: config binding · reveals · background · music · tap-to-open intro · countdown · RSVP · contacts */
 (function () {
   "use strict";
@@ -740,6 +740,48 @@
       seconds: $('[data-unit="seconds"]')
     };
     var done = $("#countdownDone");
+
+    /* v22 — each digit is its own cell. Only a digit that changes moves: the new one drops in
+       from above while the old one slips down and fades (opacity + transform only).
+       A hidden plain-text copy keeps the number readable for screen readers. */
+    Object.keys(units).forEach(function (k) {
+      var el = units[k], sr = document.createElement("span"), dg = document.createElement("span");
+      sr.className = "sr-only"; dg.className = "dgs"; dg.setAttribute("aria-hidden", "true");
+      el.textContent = ""; el.appendChild(sr); el.appendChild(dg);
+      el._sr = sr; el._dg = dg; el._val = "";
+    });
+    function cell(ch) {
+      var c = document.createElement("span"), v = document.createElement("span");
+      c.className = "dg"; v.className = "dg__v"; v.textContent = ch; c.appendChild(v); return c;
+    }
+    function paint(el, val, animate) {
+      if (el._val === val) return;
+      var prev = el._val; el._val = val; el._sr.textContent = val;
+      var cells = el._dg.children;
+      if (cells.length !== val.length) {                       // first paint, or days went 99 -> 100
+        el._dg.textContent = "";
+        for (var i = 0; i < val.length; i++) el._dg.appendChild(cell(val.charAt(i)));
+        return;
+      }
+      for (var j = 0; j < val.length; j++) {
+        var ch = val.charAt(j), c = cells[j], cur = c.firstChild;
+        if (cur.textContent === ch) continue;
+        if (c.children.length > 1) {                           // a roll is still running (tab was hidden): settle it
+          while (c.children.length > 1) c.removeChild(c.lastChild);
+          cur.getAnimations().forEach(function (a) { a.cancel(); });
+          cur.textContent = ch; continue;
+        }
+        if (!animate || reduceMotion || !cur.animate) { cur.textContent = ch; continue; }
+        var nu = document.createElement("span");
+        nu.className = "dg__v dg__v--in"; nu.textContent = ch; c.appendChild(nu);
+        var ease = "cubic-bezier(.22,.8,.3,1)", opts = { duration: 650, easing: ease, fill: "both" };
+        cur.animate([{ opacity: 1, transform: "translateY(0)" }, { opacity: 0, transform: "translateY(55%)" }], opts);
+        nu.animate([{ opacity: 0, transform: "translateY(-55%)" }, { opacity: 1, transform: "translateY(0)" }], opts)
+          .onfinish = (function (cellEl, oldEl, newEl, text) {
+            return function () { oldEl.textContent = text; oldEl.getAnimations().forEach(function (a) { a.cancel(); }); if (newEl.parentNode) newEl.parentNode.removeChild(newEl); };
+          })(c, cur, nu, ch);
+      }
+    }
     var last = {};
     var phase = 0;           // 0 waiting to be seen · 1 counting up · 2 live
     var latest = null;       // newest numbers, kept while the count-up plays
@@ -750,7 +792,7 @@
         phase = 2;
         box.classList.add("is-done");
         done.hidden = false;
-        Object.keys(units).forEach(function (k) { units[k].textContent = "00"; });
+        Object.keys(units).forEach(function (k) { paint(units[k], "00", false); });
         clearInterval(timer);
         return;
       }
@@ -764,13 +806,7 @@
       if (phase < 2) { latest = nums; return; }       // numbers are written by the count-up until it ends
       Object.keys(vals).forEach(function (k) {
         if (last[k] === vals[k]) return;
-        units[k].textContent = vals[k];
-        if (last[k] !== undefined && !reduceMotion && units[k].animate) {
-          units[k].animate(
-            [{ opacity: 0.25, transform: "translateY(-7px)" }, { opacity: 1, transform: "translateY(0)" }],
-            { duration: 420, easing: "cubic-bezier(.22,.61,.36,1)" }
-          );
-        }
+        paint(units[k], vals[k], last[k] !== undefined);
         last[k] = vals[k];
       });
     }
@@ -784,7 +820,7 @@
       (function step(now) {
         var k = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - k, 3);
         Object.keys(units).forEach(function (u) {
-          units[u].textContent = L.pad(Math.round(latest[u] * e), u === "days" ? 2 : 2);
+          paint(units[u], L.pad(Math.round(latest[u] * e), 2), false);
         });
         if (k < 1) { requestAnimationFrame(step); return; }
         phase = 2; last = {}; render();
@@ -797,6 +833,7 @@
       seen.observe(box);
     } else { phase = 2; }
 
+    Object.keys(units).forEach(function (k) { paint(units[k], "00", false); });
     var timer = setInterval(render, 1000);
     render();
     document.addEventListener("visibilitychange", function () { if (!document.hidden) render(); });
@@ -953,6 +990,48 @@
         else { window.location.href = url; }
       }
     });
+  }
+
+  /* 5a. RSVP confirmation — display only (v22). Writes the guest's first name (and the date) into the
+         confirmation that already appears; it reads the name field and never touches the form's logic,
+         the stages, the contacts or the WhatsApp message. */
+  function initRsvpPersonal() {
+    var section = $("#rsvp"), nameEl = $("#guestName");
+    if (!section || !nameEl) return;
+    var targets = $$("[data-guest-first]");
+    var detail = $("#rsvpDetail");
+    var TITLES = /^(mr|mrs|ms|miss|mx|dr|prof|rev|ven|hon)\.?$/i;
+
+    function firstName() {
+      var parts = nameEl.value.replace(/\s+/g, " ").trim().split(" ").filter(Boolean);
+      if (!parts.length) return "";
+      var n = parts[0];
+      if (TITLES.test(n) && parts[1]) n = n + " " + parts[1];
+      return n.charAt(0).toUpperCase() + n.slice(1);
+    }
+    function fill() {
+      var n = firstName();
+      var tpl = (cfg.text && cfg.text.rsvpThankName) || "Thank you, {name}";
+      targets.forEach(function (el) { el.textContent = n ? tpl.replace("{name}", n) : ""; });
+      if (detail) {
+        var d = L.dateParts(cfg.event.dateTime, cfg.event.timeZone);
+        var tplD = (cfg.text && cfg.text.rsvpAcceptDetail) || "";
+        detail.textContent = tplD ? tplD.replace("{date}", d.weekday + ", " + d.day + " " + d.month) : "";
+      }
+    }
+    nameEl.addEventListener("input", fill);
+    if (window.MutationObserver) {
+      new MutationObserver(function () { if (section.getAttribute("data-stage") === "confirmed") fill(); })
+        .observe(section, { attributes: true, attributeFilter: ["data-stage", "data-attendance"] });
+    }
+    fill();
+  }
+
+  // The venue photograph: if the file is ever missing, the frame quietly disappears (nothing else moves).
+  function initVenuePhoto() {
+    var fig = $("#venuePhoto"), img = fig && $("img", fig);
+    if (!img) return;
+    img.addEventListener("error", function () { fig.remove(); });
   }
 
   /* ------------------------------------------------------------------ *
@@ -1148,7 +1227,7 @@
 
   /* The sprigs sway forever: pause that while they are off-screen */
   function initSprigIdle() {
-    var els = $$(".sprig, .ornament");
+    var els = $$(".sprig, .ornament, .monogram, .photo-bg__pic");
     if (!els.length || !("IntersectionObserver" in window)) return;
     var io = new IntersectionObserver(function (en) {
       en.forEach(function (e) { e.target.classList.toggle("is-idle", !e.isIntersecting); });
@@ -1184,6 +1263,8 @@
   musicCtl = initMusic();
   initCountdown();
   initRsvp();
+  initRsvpPersonal();
+  initVenuePhoto();
   initFamilies();
   initSaveDate();
   initDust();

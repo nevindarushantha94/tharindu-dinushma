@@ -1196,6 +1196,15 @@ html.js .countdown .cd::before, html.js .countdown .cd::after, .countdown .cd__i
   .photo-bg__img { transition: none; }
 }
 
+/* v23 · the three background photographs drift in very slowly (about 1.07x over 36 s, then back).
+   Transform only, so it stays smooth; the .photo-bg__pic box already clips the edges, so nothing around moves.
+   Paused off-screen (js adds .is-idle), and off for reduced-motion. */
+@media (prefers-reduced-motion: no-preference) {
+  .photo-bg__img { transform-origin: 50% 50%; will-change: transform; animation: photoDrift 36s ease-in-out infinite alternate; }
+  .photo-bg__pic.is-idle .photo-bg__img { animation-play-state: paused; }
+}
+@keyframes photoDrift { from { transform: scale(1); } to { transform: scale(1.07); } }
+
 
 /* --------------------------------------------------------------------------
    v18 — smooth, lag-free motion for every section below the hero
@@ -1247,3 +1256,118 @@ html.js .countdown .cd::before, html.js .countdown .cd::after, .countdown .cd__i
 
 /* Older / budget phones: swap the live blur for a solid ivory pane (identical look, zero GPU cost) */
 html.lite .glass { -webkit-backdrop-filter: none; backdrop-filter: none; background: rgba(252, 249, 241, .84); }
+
+
+/* ==========================================================================
+   v22 — finishing touches (appended; nothing above was changed)
+   1 · T & D monogram   2 · rolling countdown digits   3 · venue photograph
+   4 · RSVP confirmation seal + personal thank-you   5 · closing bloom
+   Palette, type and easing are the existing tokens. Hidden start states exist only inside
+   `prefers-reduced-motion: no-preference`, so for everyone else the finished state is simply there.
+   ========================================================================== */
+.sr-only { position: absolute !important; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+/* ---- 1 · Monogram ---------------------------------------------------------------- */
+.monogram { display: block; width: clamp(6.6rem, 31vw, 8.2rem); margin: 0 auto 1.5rem; aspect-ratio: 1; }
+.monogram .mg { display: block; width: 100%; height: 100%; overflow: visible; }
+.mg__ring, .mg__ring2 { fill: none; stroke: var(--gold); stroke-width: .9; }
+.mg__ring2 { stroke-width: .5; opacity: .55; }
+.mg__stem { fill: none; stroke: #8da487; stroke-width: .9; stroke-linecap: round; opacity: .8; }
+.mg__bud circle { fill: var(--gold); opacity: .85; }
+.mg__t { font-family: var(--script); font-size: 50px; fill: var(--glass-ink, #2b3a30); stroke: var(--glass-ink, #2b3a30); stroke-width: 1.3px; stroke-linejoin: round; paint-order: stroke fill; }
+.mg__amp { font-family: var(--serif); font-style: italic; font-weight: 500; font-size: 32px; fill: var(--gold-deep); stroke: var(--gold-deep); stroke-width: .5px; stroke-linejoin: round; paint-order: stroke fill; }
+.mg__bl ellipse { fill: #efe2bd; stroke: var(--gold); stroke-width: .5; }
+.mg__lf, .mg__bl, .mg__bud, .mg__t, .mg__amp { transform-box: fill-box; }
+.mg__lf { transform-origin: 0% 50%; }
+.mg__bl { transform-origin: 50% 50%; }
+.details > .monogram { margin-top: -.4rem; margin-bottom: 1.5rem; }
+
+@media (prefers-reduced-motion: no-preference) {
+  html.js .reveal[data-anim="mono"] { opacity: 1; transform: none; }
+  html.js .mg__ring { stroke-dasharray: 1; stroke-dashoffset: 1; }
+  html.js .mg__ring2 { opacity: 0; }
+  html.js .mg__stem { stroke-dasharray: 1; stroke-dashoffset: 1; }
+  html.js .mg__lf { opacity: 0; transform: scale(.25); }
+  html.js .mg__bl { opacity: 0; transform: scale(0); }
+  html.js .mg__bud { opacity: 0; }
+  html.js .mg__t, html.js .mg__amp { opacity: 0; transform: translateY(7px); }
+  html.js .monogram.in .mg__ring { stroke-dashoffset: 0; transition: stroke-dashoffset 2.2s var(--ease-expo) .1s; }
+  html.js .monogram.in .mg__ring2 { opacity: .55; transition: opacity 1.4s ease 1.1s; }
+  html.js .monogram.in .mg__t--t { opacity: 1; transform: none; transition: opacity 1.2s ease .5s, transform 1.4s var(--ease-expo) .5s; }
+  html.js .monogram.in .mg__amp { opacity: 1; transform: none; transition: opacity 1.1s ease 1s, transform 1.3s var(--ease-expo) 1s; }
+  html.js .monogram.in .mg__t--d { opacity: 1; transform: none; transition: opacity 1.2s ease 1.3s, transform 1.4s var(--ease-expo) 1.3s; }
+  html.js .monogram.in .mg__stem { stroke-dashoffset: 0; transition: stroke-dashoffset 1.8s var(--ease-expo) .7s; }
+  html.js .monogram.in .mg__lf { opacity: 1; transform: none; transition: opacity .7s ease calc(.8s + var(--i, 0) * .055s), transform .9s cubic-bezier(.3, 1.3, .5, 1) calc(.8s + var(--i, 0) * .055s); }
+  html.js .monogram.in .mg__bl { opacity: 1; transform: none; transition: opacity .6s ease calc(1.9s + var(--b, 0) * .18s), transform 1.1s cubic-bezier(.3, 1.5, .5, 1) calc(1.9s + var(--b, 0) * .18s); }
+  html.js .monogram.in .mg__bud { opacity: 1; transition: opacity 1s ease 2s; }
+  /* once drawn, the wreath breathes very slightly; paused off-screen (js adds .is-idle) */
+  html.js .monogram.in .mg__wreath { transform-origin: 110px 110px; animation: mgSway 15s ease-in-out 3.2s infinite; }
+  .monogram.is-idle .mg__wreath { animation-play-state: paused; }
+}
+@keyframes mgSway { 0%, 100% { rotate: -.7deg; } 50% { rotate: .7deg; } }
+
+/* ---- 2 · Countdown: rolling digits ----------------------------------------------- */
+.cd__num { display: flex; justify-content: center; align-items: center; }
+.dgs { display: inline-flex; justify-content: center; }
+.dg { position: relative; display: block; width: .56em; height: 1.12em; overflow: hidden; text-align: center; }
+.dg__v { display: block; height: 1.12em; line-height: 1.12em; }
+.dg__v--in { position: absolute; left: 0; right: 0; top: 0; }
+.photo-bg .cd__num::after { content: none; }
+.photo-bg .cd__item::after {
+  content: ""; position: absolute; left: 50%; bottom: 2.2rem; width: 1.5rem; height: 1px; margin-left: -.75rem;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent); opacity: .7; pointer-events: none;
+}
+@media (min-width: 480px) { .photo-bg .cd__item::after { bottom: 2.05rem; } }
+@media (max-width: 359px) { .photo-bg .cd__num { font-size: 2.6rem; } }
+
+/* ---- 3 · Venue photograph -------------------------------------------------------- */
+.venue-photo { width: min(100%, 24rem); margin: 1.4rem auto 1.6rem; }
+.venue-photo__frame {
+  position: relative; padding: 7px; border-radius: 1.5rem;
+  background: linear-gradient(160deg, #fffdf8, #f3eee0);
+  border: 1px solid rgba(184, 153, 91, .55);
+  box-shadow: 0 26px 44px -30px rgba(60, 52, 30, .55), 0 2px 0 rgba(255, 255, 255, .8) inset;
+}
+.venue-photo__pic { display: block; overflow: hidden; border-radius: 1.05rem; background: #a6ab93; aspect-ratio: 680 / 451; }
+.venue-photo__pic img { display: block; width: 100%; height: 100%; object-fit: cover; }   /* box has the photo's own 680:451 shape: nothing is cropped or stretched */
+.venue-photo__frame::after { content: ""; position: absolute; inset: 7px; border-radius: 1.05rem; pointer-events: none; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .28); }
+.venue-photo__cap { margin: .85rem 0 0; font: italic 500 1.05rem/1.4 var(--serif); letter-spacing: .01em; color: var(--ink-soft); }
+@media (prefers-reduced-motion: no-preference) {
+  html.js .reveal[data-anim="venue"] { opacity: 0; transform: translate3d(0, 22px, 0); }
+  html.js .reveal[data-anim="venue"].in { opacity: 1; transform: none; transition: opacity 1.1s var(--ease-soft) var(--d, 0s), transform 1.5s var(--ease-expo) var(--d, 0s); }
+  html.js .venue-photo__pic { clip-path: inset(0 0 100% 0 round 1.05rem); }
+  html.js .venue-photo.in .venue-photo__pic { clip-path: inset(0 0 0 0 round 1.05rem); transition: clip-path 1.7s var(--ease-expo) calc(var(--d, 0s) + .15s); }
+  html.js .venue-photo__pic img { transform: scale(1.08); }
+  html.js .venue-photo.in .venue-photo__pic img { transform: none; transition: transform 2.6s var(--ease-expo) calc(var(--d, 0s) + .15s); }
+  html.js .venue-photo__cap { opacity: 0; transform: translateY(8px); }
+  html.js .venue-photo.in .venue-photo__cap { opacity: 1; transform: none; transition: opacity 1s ease calc(var(--d, 0s) + 1.1s), transform 1.1s var(--ease-expo) calc(var(--d, 0s) + 1.1s); }
+}
+
+/* ---- 4 · RSVP confirmation ------------------------------------------------------- */
+.rsvp-seal { display: block; width: 4.1rem; height: 4.1rem; margin: 0 auto .9rem; overflow: visible; }
+.rsvp-seal__ring, .rsvp-seal__tick { fill: none; stroke: var(--gold); stroke-linecap: round; stroke-linejoin: round; }
+.rsvp-seal__ring { stroke-width: 1.1; }
+.rsvp-seal__tick { stroke: var(--sage-deep); stroke-width: 2; }
+.rsvp-seal__leaf { fill: var(--sage); fill-opacity: .85; transform-box: fill-box; }
+.rsvp-seal__leaf--b { fill: var(--euca); }
+.rsvp-thanks-sprig { width: 2.4rem; height: auto; margin: 0 auto .8rem; opacity: .75; }
+.rsvp-thanks-name { margin: 0 0 .35rem; padding: .04em .2em; max-width: 100%; font: 400 clamp(2rem, 8.6vw, 2.8rem)/1.25 var(--script); color: var(--sage-deep); overflow-wrap: anywhere; text-wrap: balance; }
+.rsvp-thanks-name:empty { display: none; }
+.rsvp-thanks-detail { margin: .8rem 0 0; font: 500 .68rem/1.7 var(--sans); letter-spacing: .14em; text-indent: .14em; text-transform: uppercase; color: var(--gold-deep); text-wrap: balance; }
+@media (prefers-reduced-motion: no-preference) {
+  #rsvp[data-stage="confirmed"] .rsvp-seal__ring { stroke-dasharray: 1; animation: sealDraw 1.3s var(--ease-expo) .05s both; }
+  #rsvp[data-stage="confirmed"] .rsvp-seal__tick { stroke-dasharray: 1; animation: sealDraw .7s var(--ease-expo) .95s both; }
+  #rsvp[data-stage="confirmed"] .rsvp-seal__leaf { transform-origin: 50% 100%; animation: sealLeaf .9s cubic-bezier(.3, 1.3, .5, 1) 1.25s both; }
+  #rsvp[data-stage="confirmed"] .rsvp-seal__leaf--b { animation-delay: 1.4s; }
+  #rsvp[data-stage="confirmed"] .rsvp-thanks-sprig { animation: var(--rise) 1s var(--ease-expo) .1s both; }
+  #rsvp[data-stage="confirmed"] .rsvp-thanks-name { animation: var(--rise) 1.1s var(--ease-expo) .5s both; }
+  #rsvp[data-stage="confirmed"] .rsvp-thanks-detail { animation: var(--rise) 1s var(--ease-expo) 2.3s both; }
+}
+@keyframes sealDraw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+@keyframes sealLeaf { from { opacity: 0; transform: scale(.2) rotate(-12deg); } to { opacity: 1; transform: none; } }
+
+/* ---- 5 · Closing ----------------------------------------------------------------- */
+.final .signoff + .monogram { margin: 1.5rem auto 0; width: clamp(7rem, 32vw, 8.8rem); }
+@media (prefers-reduced-motion: no-preference) {
+  html.js .final .withlove.reveal[data-anim="fade"].in { transition-duration: 1.6s; }
+}

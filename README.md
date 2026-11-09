@@ -19,6 +19,15 @@ assets/botanical/   divider.svg (sprig divider) · sprig.svg (single eucalyptus 
 vercel.json         caching + security headers
 ```
 
+## v22 — finishing touches (T & D monogram · rolling countdown · venue photograph · RSVP confirmation · closing)
+Layered on the existing design; the opening screen, film, Skip Intro, music + mute, hero timing, photographs, RSVP logic, WhatsApp message, contacts, calendar, countdown target and layout were not changed.
+- **Monogram** — inline SVG (a ringed T & D in the same Pinyon Script as the names, an eucalyptus wreath, a few champagne blossoms in the closing version). It sits above "Join us on" and under the signature. It draws itself once when scrolled to, then the wreath breathes very slightly (paused off-screen). CSS: `.monogram`, `.mg__*` (end of `css/styles.css`).
+- **Countdown** — every digit is its own cell and only a digit that changes rolls (new one drops in, old one slips away). The existing count-up on first view, the per-second timer and the target date are unchanged; a hidden plain-text copy keeps the number readable for screen readers. `initCountdown()` in `js/main.js` (`paint()`).
+- **Venue photograph** — `assets/photos/ranowell-venue.webp` (44 KB) with `ranowell-venue.jpg` (49 KB) fallback, both the original 680 × 451 pixels (nothing cropped, stretched or filtered), framed with a rounded champagne mat, lazy-loaded, revealed with a soft wipe + settle. It sits between the venue name and the **Get Directions** button (the Google Maps link is unchanged). Caption: `text.venueCaption`. If the file is ever missing the frame is removed quietly. For a sharper result on large phones, replace both files with a higher-resolution original (keep the 680:451 shape, or update `width`/`height`/`aspect-ratio`).
+- **RSVP confirmation** — display only: a ring-and-tick seal draws itself, then "Thank you, <first name>" (script) appears above the existing "Your place is waiting." and a line with the date. The name is read from the name field (titles such as Mr/Mrs/Dr are kept with the next word); declines get a quiet sprig instead of a tick. Wording: `text.rsvpThankName`, `text.rsvpAcceptDetail`. `initRsvpPersonal()` only reads the field and never changes the form logic.
+- **Closing** — `text.withLove` is now "With love," (above Tharindu & Dinushma). The monogram with its blossoms closes the panel. The existing sign-off was upgraded in place rather than adding a second one.
+- All new motion is opacity/transform/stroke only and is replaced by the finished state for guests who prefer reduced motion.
+
 ## v21 — new envelope-to-monogram intro film
 - `assets/video/opening.mp4` is now the redesigned film: sealed envelope (full-screen) → seal breaks and flaps open → ribbon bow untied → the "T&D" monogram writes itself inside a eucalyptus wreath, then holds still for the last ~2.5 s. 720×1280, H.264, 10 s, 2.5 MB. The picture is untouched; only the unused audio track and metadata were removed and the file was laid out for quick start (lossless).
 - `assets/video/poster.jpg` is the exact first frame of this film (full-bleed envelope with the T&D seal).
