@@ -453,7 +453,8 @@
     var failed = false;    // the video file errored before the tap
     var started = false;   // the video is really rendering frames
     var finished = false;
-    var openedAt = 0;      // when the guest tapped (a tap on the film counts as "skip" only a moment later)
+    var openedAt = 0;      // when the guest tapped
+    var skipShownAt = 0;   // when the Skip Intro button appeared
     var timers = {};
 
     function versioned(url, ver) {
@@ -464,7 +465,7 @@
     function clearAll() { Object.keys(timers).forEach(function (k) { clearTimeout(timers[k]); }); }
 
     /* Move on to the invitation. Only ever reached after the guest's tap (video ended / video failed /
-       reduced-motion), or by skipping (Skip button, Escape, or a tap on the film). Runs once.
+       reduced-motion), or by skipping (the Skip Intro button only). Runs once.
        The music is deliberately NOT touched here: it simply keeps playing. */
     function finish(reason) {
       if (finished) return;
@@ -539,7 +540,7 @@
         // Safety net: if "ended" never fires, move on shortly after the clip should be over.
         timers.watchdog = setTimeout(finish, Math.max(0, video.duration - video.currentTime) * 1000 + 2500);
       }
-      timers.skip = setTimeout(function () { intro.classList.add("show-skip"); }, 700);
+      timers.skip = setTimeout(function () { skipShownAt = performance.now(); intro.classList.add("show-skip"); }, 700);
     }
 
     /* ---- Poster: already in the markup; JS only corrects it if the config points elsewhere ---- */
@@ -616,10 +617,13 @@
     video.addEventListener("playing", function () { clearTimeout(timers.wait); });
 
     /* ---- The tap ---- */
-    openBtn.addEventListener("click", function () {
-      if (opened) return;           // no duplicate clicks / repeated playback
+    // Reached from the "Tap to Open Invitation" button OR a touch anywhere on the opening screen.
+    // `opened` makes sure the opening sequence can only ever run once.
+    function openInvitation() {
+      if (opened || finished) return;   // no duplicate clicks / repeated playback
       opened = true;
       openedAt = performance.now();
+      intro.style.cursor = "";          // the whole screen stops looking tappable once the film starts
       try { if (navigator.vibrate) navigator.vibrate(14); } catch (e) {}   // a tiny tap on Android; ignored elsewhere
       openBtn.disabled = true;
       openBtn.setAttribute("aria-busy", "true");
@@ -657,15 +661,27 @@
           fallback();
         }, 8000);
       })(0);
+    }
+
+    openBtn.addEventListener("click", openInvitation);
+
+    // Before the guest has opened the invitation, a touch / click anywhere on the opening screen opens it too
+    // (the handler sits directly on #intro, and the cursor is set, so iPhone Safari delivers the tap).
+    // Once opened this listener does nothing, so touching the film can never skip it.
+    intro.style.cursor = "pointer";
+    intro.addEventListener("click", function (e) {
+      if (opened || finished) return;
+      if (e.target && e.target.closest && e.target.closest("#introSkip")) return;
+      openInvitation();
     });
 
-    // Skip is offered only once the film is playing; Escape and a tap anywhere on the film work the same way.
+    // The ONLY way to skip the film is the Skip Intro button. It is ignored until it is actually visible and for a
+    // moment after it appears, so a stray / repeated tap from the opening touch cannot hit it by accident.
     // (The floating music button sits outside #intro, so muting / unmuting can never reach this listener.)
-    skipBtn.addEventListener("click", function () { if (opened) finish("skip"); });
-    intro.addEventListener("click", function (e) {
+    skipBtn.addEventListener("click", function () {
       if (!opened || finished) return;
-      if (e.target && e.target.closest && e.target.closest("#introOpen")) return;   // the opening tap itself / a double-tap on it
-      if (performance.now() - openedAt < 700) return;                              // ...and any stray tap right after it
+      if (!intro.classList.contains("show-skip")) return;
+      if (performance.now() - skipShownAt < 400) return;
       finish("skip");
     });
 
@@ -675,10 +691,6 @@
       var p = video.play();
       if (p && p.catch) p.catch(function () {});
     });
-    document.addEventListener("keydown", function (e) {
-      if (e.key === "Escape" && opened && !finished) finish("skip");
-    });
-
     // Test/diagnostic hook (read-only state; no effect on behaviour)
     window.__intro = { state: function () {
       return { prepared: prepared, opened: opened, started: started, finished: finished, failed: failed,
